@@ -1,0 +1,38 @@
+#version 430 core
+
+#define TERRAIN_HEIGHT_ADJUST 255.0f
+
+layout(local_size_x = 1, local_size_y = 1) in;
+
+layout(std430, binding = 0) buffer SSBO_vertex {
+	vec4 vertex[];
+};
+layout(std430, binding = 1) buffer SSBO_normal {
+	vec4 normal[];
+};
+
+uniform float heightmapWidthHeight;
+
+uniform sampler2D texture_heightmap;
+
+void main() {
+
+	uvec3 numVertex = gl_NumWorkGroups * gl_WorkGroupSize;
+	uint index = gl_GlobalInvocationID.y * numVertex.x + gl_GlobalInvocationID.x;
+
+	vec2 texCoord_curr = vec2(vertex[index].x, -vertex[index].z) / heightmapWidthHeight;
+	vec2 texCoord_left = vec2(vertex[index].x - 1, -vertex[index].z) / heightmapWidthHeight;
+	vec2 texCoord_right = vec2(vertex[index].x + 1, -vertex[index].z) / heightmapWidthHeight;
+	vec2 texCoord_up = vec2(vertex[index].x, -1 - vertex[index].z) / heightmapWidthHeight;
+	vec2 texCoord_down = vec2(vertex[index].x, 1 - vertex[index].z) / heightmapWidthHeight;
+
+	float height_curr = texture(texture_heightmap, texCoord_curr).x;
+	float height_left = texture(texture_heightmap, texCoord_left).x;
+	float height_right = texture(texture_heightmap, texCoord_right).x;
+	float height_up = texture(texture_heightmap, texCoord_up).x;
+	float height_down = texture(texture_heightmap, texCoord_down).x;
+
+	vertex[index].y = TERRAIN_HEIGHT_ADJUST * height_curr;
+
+	normal[index] = vec4(normalize(vec3(height_left - height_right, 2.0f / heightmapWidthHeight, height_down - height_up)), 1.0f);
+}
