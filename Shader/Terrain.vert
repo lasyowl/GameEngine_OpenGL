@@ -22,7 +22,6 @@ uniform mat4 ShadowMatrix;
 uniform vec3 eye_position;
 
 uniform float heightmapWidthHeight;
-uniform float terrainDensity = 20.0f;
 
 const vec4 plane0 = vec4(0, 1, 0, -5 + 1);
 const vec4 plane1 = vec4(0, -1, 0, 5);
@@ -46,7 +45,7 @@ void main() {
 	visibility = clamp(visibility, 0, 1);
 
 	vs_uv = vec2(appVertex.x, -appVertex.z);
-	vs_uv = vs_uv * terrainDensity / heightmapWidthHeight;
+	vs_uv = vs_uv / heightmapWidthHeight;
 
 	slope = 1 - dot(appNormal.xyz, vec3(0,1,0));
 	height = appVertex.y / TERRAIN_HEIGHT_ADJUST;

@@ -8,6 +8,8 @@
 
 class Character;
 
+enum Tag_Object { TAG_PLAYER, TAG_INTERACTIVE, TAG_STATIC, TAG_ENEMY };
+
 class ObjectInfo {
 public:
 	ObjectInfo();
@@ -31,6 +33,9 @@ public:
 	SelectionBox *selectionBox;
 	bool isSelected;
 	Character *character;
+	glm::mat4 HandMatrix;
+	float hitPoint_current;
+	float hitPoint_max;
 
 private:
 };

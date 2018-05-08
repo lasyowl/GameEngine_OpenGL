@@ -15,9 +15,9 @@ public:
 	void DeleteCharacter(Character_Static *target);
 	void UpdateCharacters();
 
+	std::list<Character_Static> characters;
+
 private:
 	Render_Models_Static *render_models_static;
-
-	std::list<Character_Static> characters;
 };
 #endif

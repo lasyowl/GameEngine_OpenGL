@@ -4,7 +4,7 @@ using namespace glm;
 
 Flags_IO::Flags_IO() : raycast(false), showSelectionBox(false), allKeyboardReleased(0), activateMenu(false), menuInUse(false),
 isTyping(false), isHangul(false), mouse_movable(false), sceneState(SCENE_GREETING), sceneSwitch(false), process(0.0f),
-loadSequence(0), targetScene(-1) {
+loadSequence(0), targetScene(-1), pathFinder_state(PATHFINDER_DEACTIVATE), collider_visible(false) {
 	isPressed.resize(100, false);
 	locked.resize(100, false);
 	status_func.resize(100, false);

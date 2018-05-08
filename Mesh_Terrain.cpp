@@ -212,13 +212,13 @@ void Mesh_Terrain::LoadTextureArray(const char *filePath, int z) {
 		FreeImage_Unload(tx_pixmap);
 }
 
-vec3 Mesh_Terrain::GetRaycastCoord_MP(const vec3 &origin, const vec3 &ray, const float &range, const int &iteration) {
+vec3 Mesh_Terrain::GetRaycastCoord_MP(const vec3 &origin, const vec3 &dir, const float &range, const int &iteration) {
 	float border = width;
 	vec3 newOrigin = origin;
 	float newRange = range;
 	bool detected = false;
 	for (int i = 0; i < iteration; i++) {
-		vec3 checkPoint = newOrigin + ray * 0.5f * newRange;
+		vec3 checkPoint = newOrigin + dir * 0.5f * newRange;
 		//printf("%f %f %f\n", checkPoint.x, checkPoint.y, checkPoint.z);
 		newRange *= 0.5f;
 		if (checkPoint.x > border || checkPoint.x < 0 || checkPoint.z < -border || checkPoint.z > 0) {
@@ -238,11 +238,11 @@ vec3 Mesh_Terrain::GetRaycastCoord_MP(const vec3 &origin, const vec3 &ray, const
 	else return vec3(-1, -1, -1);
 }
 
-vec3 Mesh_Terrain::GetRaycastCoord_S(const vec3 &origin, const vec3 &ray, const float &delta, const float &range) {
+vec3 Mesh_Terrain::GetRaycastCoord_S(const vec3 &origin, const vec3 &dir, const float &delta, const float &range) {
 	float border = width - 1.0f;
 	bool detected = false;
 	vec3 newOrigin = origin;
-	vec3 deltaRay = delta * ray;
+	vec3 deltaRay = delta * dir;
 	int iteration = range / delta;
 	for (int i = 0; i < iteration; i++) {
 		newOrigin += deltaRay;

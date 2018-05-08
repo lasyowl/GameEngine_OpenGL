@@ -3,12 +3,14 @@
 #include "GlobalFunctions.h"
 #include "Character.h"
 #include "Render_Models_Animated.h"
+#include "PathFinder_Node.h"
 
 using namespace glm;
 using namespace std;
 
-Character::Character() : isInitiated(false), preRotation(vec3(0,0,0)), seq2Angle(0.0f), animState(STATE_MOVE), maintainAnim(false), 
-yOffset(0.0f), yJumpOffset(0.0f), ySpeed(0.0f), yForce(0.002f), isJumping(false), isInherited(false), calcGravity(false) {
+Character::Character() : isInitiated(false), preRotation(vec3(0,0,0)), seq2Angle(0.0f), animState(STATE_IDLE), maintainAnim(false), 
+yOffset(0.0f), yJumpOffset(0.0f), ySpeed(0.0f), yForce(0.016f), isJumping(false), isInherited(false), calcGravity(false),
+recogDist(50.0f), animDuration(0), speed(1.0f), isRunning(false), hitPoint_max(100.0f), hitPoint_current(100.0f), isDying(false) {
 	dir_origin = vec3(0, 0, -1);
 }
 
@@ -44,13 +46,17 @@ bool Character::Activate() {
 		printf("Activation fail\n");
 		return CHAR_ACTIV_FAIL;
 	}
-	iter->isAnimating = false;
-	isInitiated = true;
-	direction = dir_origin;
-	return CHAR_ACTIV_SUCCESS;
+	else {
+		iter->character = this;
+		iter->isAnimating = false;
+		isInitiated = true;
+		direction = dir_origin;
+		return CHAR_ACTIV_SUCCESS;
+	}
 }
 
 void Character::Update() {
+	ReservedMove();
 	position.y += ySpeed;
 	float height;
 	if (calcGravity == true) {
@@ -70,6 +76,7 @@ void Character::Update() {
 	iter->pos = position;
 	iter->scale = this->scale;
 	iter->preRot = this->preRotation;
+	collider.UpdateVariables(GetPos() + vec3(0,1,0), 5);
 }
 
 void Character::GenPreRotMatrix() {
@@ -127,6 +134,10 @@ vec3 Character::GetPos() {
 	return position;
 }
 
+vec3 Character::GetPos_HUD() {
+	return (position + vec3(0, 6.0f + 50.0f * iter->scale, 0));
+}
+
 vec3 Character::GetDir() {
 	return direction;
 }
@@ -140,7 +151,14 @@ vec3 Character::GetRightDir() {
 	return rightDir;
 }
 
-void Character::Move(const vec3 &dir, const float &speed) {
+// Returns moved distance
+void Character::Move(const vec3 &dir, const bool &clearPath) {
+	float speed = this->speed * (isRunning + 1);
+
+	if (clearPath == true) {
+		ClearPath();
+	}
+	vec3 formalPos = position;
 	if (calcGravity == true) {
 		// stick on terrain
 		vec3 newDir = dir;
@@ -148,6 +166,9 @@ void Character::Move(const vec3 &dir, const float &speed) {
 		newDir = normalize(newDir);
 		position += speed * newDir;
 		position.y = glm::max(mesh_terrain->GetHeight(position), position.y);
+		if ((position.y - formalPos.y) / speed > 2) {
+			position = formalPos;
+		}
 	}
 	else {
 		// fly
@@ -200,15 +221,17 @@ int Character::GetTag() {
 }
 
 mat4 Character::GetTransformMatrix() {
-	mat4 TransformMatrix = translate(mat4(1.0f), position + vec3(0, yOffset, 0));
+	GlobalFunctions gf;
+	mat4 TransformMatrix = translate(mat4(1.0f), position + vec3(0, yOffset + 4.0f, 0));
+
 	TransformMatrix = TransformMatrix * GetRMatrix() * PreRotMatrix * glm::scale(mat4(1.0f), vec3(scale));
 	
 	return TransformMatrix;
 }
 
 mat4 Character::GetSelectBoxTransformMatrix() {
-	mat4 TransformMatrix = translate(mat4(1.0f), position + vec3(0, yOffset, 0));
-	TransformMatrix = TransformMatrix * PreRotMatrix * glm::scale(mat4(1.0f), vec3(scale));
+	mat4 TransformMatrix = translate(mat4(1.0f), position + vec3(0, yOffset + 4.0f, 0));
+	TransformMatrix = TransformMatrix * GetRMatrix() * PreRotMatrix * glm::scale(mat4(1.0f), vec3(scale));
 
 	return TransformMatrix;
 }
@@ -221,9 +244,10 @@ void Character::SetTerrain(Mesh_Terrain *terrain) {
 	mesh_terrain = terrain;
 }
 
-void Character::PlayAnim(const string &animName, const int &playCount) {
+int Character::PlayAnim(const string &animName, const int &playCount, const bool &loopAnim) {
 	iter->currentAnim = animName;
-	render_animated->PlayAnim(iter, playCount);
+
+	return render_animated->PlayAnim(iter, playCount, loopAnim);
 }
 
 void Character::MaintainAnim(const bool &maintain) {
@@ -245,12 +269,18 @@ void Character::SetState(const int &state) {
 			animState = STATE_MOVE;
 			break;
 		case STATE_ATTACK:
-			PlayAnim("Attack1", 1);
+			PlayAnim("Attack1", 100);
 			break;
 		case STATE_JUMP:
-			ySpeed = 0.1f;
-			PlayAnim("Jump", 1);
+			ySpeed = 0.5f;
+			animDuration = PlayAnim("Jump", 1);
 			isJumping = true;
+			break;
+		case STATE_CASTING:
+			PlayAnim("Attack1", 100, true);
+			break;
+		case STATE_DEATH:
+			animDuration = PlayAnim("Death1", 1);
 			break;
 		default:
 			break;
@@ -259,4 +289,33 @@ void Character::SetState(const int &state) {
 
 bool Character::IsJumping() {
 	return isJumping;
+}
+
+void Character::ReservePath(vector<PathFinder_Node*> &reservedPath) {
+	pathSeq = 0;
+	this->reservedPath = reservedPath;
+}
+
+void Character::ReservedMove() {
+	float speed = this->speed * (isRunning + 1);
+
+	if (pathSeq < reservedPath.size()) {
+		vec3 direction = reservedPath[pathSeq]->position - GetPos();
+		if (distance(vec3(0, direction.y, 0), direction) < speed) {
+			pathSeq++;
+		}
+		else {
+			Move(normalize(direction), false);
+		}
+	}
+}
+
+void Character::ClearPath() {
+	vector<PathFinder_Node*> temp;
+	reservedPath.swap(temp);
+}
+
+void Character::Damage(const float &damage) {
+	hitPoint_current -= damage;
+	hitPoint_current = glm::max(0.0f, hitPoint_current);
 }

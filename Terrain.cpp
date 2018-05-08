@@ -6,8 +6,10 @@
 using namespace glm;
 using namespace std;
 
-Terrain::Terrain() : quadrant(-1), hasChild(false), radius(200) {
-
+Terrain::Terrain() : quadrant(-1), hasChild(false), parent(nullptr), radius(RADIUS_DEFAULT), numLod(1), lod(0) {
+	for (int i = 0; i < 8; i++) {
+		neighbor[i] = nullptr;
+	}
 }
 
 Terrain::~Terrain() {
@@ -19,11 +21,18 @@ void Terrain::GenChild() {
 	child.resize(4);
 	for (int i = 0; i < 4; i++) {
 		child[i].SetMesh(mesh);
+		child[i].parent = this;
 	}
-	child[LD].Initiate(halfChunk, LD, origin + vec2(0, 0), totalSize);
-	child[LU].Initiate(halfChunk, LU, origin + vec2(0, halfChunk), totalSize);
-	child[RD].Initiate(halfChunk, RD, origin + vec2(halfChunk, 0), totalSize);
-	child[RU].Initiate(halfChunk, RU, origin + vec2(halfChunk, halfChunk), totalSize);
+	child[Q_LD].Initiate(halfChunk, Q_LD, origin + vec2(0, 0), totalSize);
+	child[Q_LU].Initiate(halfChunk, Q_LU, origin + vec2(0, halfChunk), totalSize);
+	child[Q_RD].Initiate(halfChunk, Q_RD, origin + vec2(halfChunk, 0), totalSize);
+	child[Q_RU].Initiate(halfChunk, Q_RU, origin + vec2(halfChunk, halfChunk), totalSize);
+}
+
+void Terrain::ConnectNeighbor() {
+	if (&child[0] != nullptr) {
+		
+	}
 }
 
 void Terrain::SetMesh(Mesh_Terrain *mesh) {
@@ -119,11 +128,16 @@ void Terrain::GenIndex() {
 	for (int i = 0; i < numLod; i++) {
 		numIndex[i] = index[i].size();
 	}
-	corner[LD] = vec3(mesh->vertex[index[0][0]]);
-	corner[RU] = vec3(mesh->vertex[index[0][index[0].size() - 1]]);
-	corner[LU] = vec3(mesh->vertex[index[0][index[0].size() - 1] - chunkSize]);
-	corner[RD] = vec3(mesh->vertex[index[0][0] + chunkSize]);
-	corner[CENTER] = (corner[LD] + corner[RU]) * 0.5f;
+	corner[Q_LD] = vec3(mesh->vertex[index[0][0]]);
+	corner[Q_RU] = vec3(mesh->vertex[index[0][index[0].size() - 1]]);
+	corner[Q_LU] = vec3(mesh->vertex[index[0][index[0].size() - 1] - chunkSize]);
+	corner[Q_RD] = vec3(mesh->vertex[index[0][0] + chunkSize]);
+	corner[Q_CENTER] = (corner[Q_LD] + corner[Q_RU]) * 0.5f;
+
+	// Reset y value of corner coords
+	for (int i = 0; i < 5; i++) {
+		corner[i].y = 0.0f;
+	}
 }
 
 void Terrain::GenObject() {
@@ -141,48 +155,62 @@ void Terrain::GenObject() {
 }
 
 int Terrain::FrustumTest(const vec3 &cameraPos) {
+	// Needs change from here
+	cullFlag = DRAW_ALL;
+	lod = 0;
+	return 0;
+	// to here
 	validCount = 0;
-	float minDist = 99999999;
+	int tempLod[4];
+	int minLod = 99999999;
+	int maxLod = 0;
+	int valids[NUM_LOD] = { 0, };
 	for (int i = 0; i < 4; i++) {
 		float dist = glm::distance(corner[i], cameraPos);
-		if (dist > radius) {
-			// outside of frustum
-			minDist = min(dist, minDist);
-		}
-		else {
-			// inside of frustum
-			validCount++;
+		tempLod[i] = dist / radius;
+		
+		minLod = min(minLod, tempLod[i]);
+		maxLod = max(maxLod, tempLod[i]);
+
+		valids[min(tempLod[i], NUM_LOD - 1)]++;
+	}
+	int valid = -1;
+	for (int i = 0; i < NUM_LOD; i++) {
+		if (valids[i] == 4) {
+			valid = i;
+			break;
 		}
 	}
 
-	if (validCount == 0) {
-		if (radius < chunkSize / 2) {
+	if (valid > -1) {
+		if (cameraPos.x > corner[Q_LD].x && cameraPos.x < corner[Q_RD].x && 
+			cameraPos.z < corner[Q_LD].z && cameraPos.z > corner[Q_RU].z) {
 			if (hasChild == true) {
-				inbound = DRAW_CHILD;
+				cullFlag = DRAW_CHILD;
 				for (int i = 0; i < 4; i++) {
 					child[i].FrustumTest(cameraPos);
 				}
 			}
 			else {
-				inbound = DRAW_ALL;
+				lod = minLod;
+				cullFlag = DRAW_ALL;
 			}
 		}
 		else {
-			inbound = DRAW_NOTHING;
+			cullFlag = DRAW_ALL;
+			lod = valid;
 		}
 	}
 	else {
-		if (validCount == 4) {
-			inbound = DRAW_ALL;
-		}
-		else if (hasChild == false) {
-			inbound = DRAW_ALL;
-		}
-		else if (hasChild == true) {
-			inbound = DRAW_CHILD;
+		if (hasChild == true) {
+			cullFlag = DRAW_CHILD;
 			for (int i = 0; i < 4; i++) {
 				child[i].FrustumTest(cameraPos);
 			}
+		}
+		else {
+			lod = minLod;
+			cullFlag = DRAW_NOTHING;
 		}
 	}
 

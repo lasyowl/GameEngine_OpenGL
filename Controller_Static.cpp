@@ -22,7 +22,7 @@ Character_Static* Controller_Static::AddCharacter(const ObjectInfo &objectInfo, 
 	temp.objectFinder = objectFinder;
 	list<Character_Static>::iterator iter = characters.end();
 	characters.insert(iter, temp);
-	iter--;
+	--iter;
 	if (iter->Activate() == CHAR_ACTIV_FAIL)
 		characters.erase(iter);
 	iter->iter->character = &(*iter);

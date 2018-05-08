@@ -21,6 +21,7 @@ public:
 	void Scene_Greetings();
 	void Scene_LoadTerrainEditor();
 	void Scene_LoadObjectEditor();
+	void Scene_LoadGameplay();
 	void CleanUp();
 
 	Keyboard keyboard;

@@ -12,42 +12,39 @@ using namespace glm;
 using namespace std;
 
 Render_Physics_CS::Render_Physics_CS() :
-	width(800), height(600), clothVao(0), numElements(0),
+	width(800), height(800), clothVao(0), numElements(0),
 	nParticles(20, 20), clothSize(4.0f, 4.0f),
 	time(0.0f), deltaT(0.0f), speed(200.0f),
-	readBuf(0), flag(false)
-{
+	readBuf(0), flag(false) {
 }
 
 Render_Physics_CS::~Render_Physics_CS() {
 
 }
 int dodo = 0;
-void Render_Physics_CS::initScene()
-{
+void Render_Physics_CS::InitScene() {
 	glEnable(GL_PRIMITIVE_RESTART);
 	glPrimitiveRestartIndex(PRIM_RESTART);
 
 	GenShaderProgram();
-	initBuffers();
+	InitBuffers();
 
 	projection = glm::perspective(glm::radians(50.0f), (float)width / height, 1.0f, 100.0f);
 
 	GetShaderVar();
 
-	GLuint tex;
 	glGenTextures(1, &tex);
-	glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0 + tex);
 	glBindTexture(GL_TEXTURE_2D, tex);
 	//LoadTexture("Texture/me_textile.jpg");
-	LoadTexture("Res/Texture/checker_tex.jpg");
+	//LoadTexture("Res/Texture/me_textile.jpg");
+	LoadTexture("Res/Pictures/Flag.jpg");
 	glGenerateMipmap(GL_TEXTURE_2D);
 	glTexParameterf(tex, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(tex, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-void Render_Physics_CS::initBuffers()
-{
+void Render_Physics_CS::InitBuffers() {
 	// Initial transform
 	glm::mat4 transf = glm::translate(glm::mat4(1.0), glm::vec3(0, clothSize.y, 0));
 	transf = glm::rotate(transf, glm::radians(-80.0f), glm::vec3(1, 0, 0));
@@ -148,8 +145,7 @@ void Render_Physics_CS::initBuffers()
 	glBindVertexArray(0);
 }
 
-void Render_Physics_CS::update(float t)
-{
+void Render_Physics_CS::Update(float t) {
 	if (time == 0.0f) {
 		deltaT = 0.0f;
 	}
@@ -169,8 +165,8 @@ void Render_Physics_CS::SwitchFlag() {
 
 float dd = 5;
 int dkdk = 0;
-void Render_Physics_CS::render()
-{
+
+void Render_Physics_CS::Render() {
 	GlobalFunctions gf;
 	glFinish();
 	gf.Start();
@@ -178,8 +174,8 @@ void Render_Physics_CS::render()
 		glUseProgram(shaderProgram[3]);
 	else glUseProgram(shaderProgram[1]);
 
-	for (int i = 0; i < 1000; i++) {
-		glDispatchCompute(nParticles.x / 10, nParticles.y / 10, 1);
+	for (int i = 0; i < 1500; i++) {
+		glDispatchCompute(nParticles.x / 20, nParticles.y / 20, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 		// Swap buffers
@@ -196,25 +192,22 @@ void Render_Physics_CS::render()
 	if (dodo < 1000)
 		dkdk++;
 	else {
-		printf("%f msec per render\n", 1000.0f / dkdk);
+		//printf("%f msec per render\n", 1000.0f / dkdk);
 		dkdk = 0;
 		dodo = 0;
 	}
 
 	// Compute the normals
 	glUseProgram(shaderProgram[2]);
-	glDispatchCompute(nParticles.x / 10, nParticles.y / 10, 1);
+	glDispatchCompute(nParticles.x / 20, nParticles.y / 20, 1);
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 	// Now draw the scene
 	glUseProgram(shaderProgram[0]);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	float color[3] = { 0.3f, 0.3f, 1.0f };
-	glClearBufferfv(GL_COLOR, 0, color);
-	view = glm::lookAt(glm::vec3(3, 2, 6), glm::vec3(2, 1.6f, 0), glm::vec3(0, 1, 0));
+	view = glm::lookAt(glm::vec3(2, 2, 5), glm::vec3(2, 1.8f, 0), glm::vec3(0, 1, 0));
 	model = translate(mat4(1.0f), vec3(-2.0f, -4.0f, 0.0f));
 	model = mat4(1.0f);
-	setMatrices();
+	SetMatrices();
 
 	// Draw the cloth
 	glBindVertexArray(clothVao);
@@ -222,7 +215,7 @@ void Render_Physics_CS::render()
 	glBindVertexArray(0);
 }
 
-void Render_Physics_CS::setMatrices() {
+void Render_Physics_CS::SetMatrices() {
 	glUseProgram(shaderProgram[0]);
 	glm::mat4 mv = view * model;
 	glm::mat3 norm = mat3(vec3(mv[0]), vec3(mv[1]), vec3(mv[2]));
@@ -234,11 +227,10 @@ void Render_Physics_CS::setMatrices() {
 	glUniformMatrix4fv(loc_ModelViewMatrix, 1, GL_FALSE, &mv[0][0]);
 	glUniformMatrix3fv(loc_NormalMatrix, 1, GL_FALSE, &norm[0][0]);
 	glUniformMatrix4fv(loc_MVP, 1, GL_FALSE, &(projection * mv)[0][0]);
-	glUniform1i(loc_Tex, 0);
+	glUniform1i(loc_Tex, tex);
 }
 
-void Render_Physics_CS::resize(int w, int h)
-{
+void Render_Physics_CS::Resize(int w, int h) {
 	glViewport(0, 0, w, h);
 	width = w;
 	height = h;
@@ -285,12 +277,12 @@ void Render_Physics_CS::GetShaderVar() {
 	GLuint loc_Ka = glGetUniformLocation(shaderProgram[0], "Ka");
 	GLuint loc_Ks = glGetUniformLocation(shaderProgram[0], "Ks");
 	GLuint loc_Shininess = glGetUniformLocation(shaderProgram[0], "Shininess");
-	glUniform4fv(loc_LightPosition, 1, &(glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)[0]));
+	glUniform4fv(loc_LightPosition, 1, &(glm::vec4(0.0f, 0.0f, 2.0f, 1.0f)[0]));
 	glUniform3fv(loc_LightIntensity, 1, &(glm::vec3(1.0f)[0]));
 	glUniform3fv(loc_Kd, 1, &(glm::vec3(0.8f)[0]));
 	glUniform3fv(loc_Ka, 1, &(glm::vec3(0.2f)[0]));
-	glUniform3fv(loc_Ks, 1, &(glm::vec3(0.2f)[0]));
-	glUniform1f(loc_Shininess, 80.0f);
+	glUniform3fv(loc_Ks, 1, &(glm::vec3(0.4f)[0]));
+	glUniform1f(loc_Shininess, 10.0f);
 
 	glUseProgram(shaderProgram[1]);
 	
@@ -309,6 +301,4 @@ void Render_Physics_CS::GetShaderVar() {
 	glUniform1f(loc_RestLengthHoriz, dx);
 	glUniform1f(loc_RestLengthVert, dy);
 	glUniform1f(loc_RestLengthDiag, sqrtf(dx * dx + dy * dy));
-
-
 }

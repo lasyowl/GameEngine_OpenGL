@@ -10,7 +10,8 @@ uniform float contrast = 0.1f;
 
 void main() {
 	vec4 color_fb = texture(tex_framebuffer, vs_uv);
-	if(vs_uv.x < 0.5f) {
+	//if(vs_uv.x < 0.5f) {
+	if(false) {
 		finalColor = intensity * color_fb;
 	}
 	else {

@@ -11,10 +11,16 @@ using namespace glm;
 
 #define INV_ONE_MS 0.001f
 
-Model_Scene_Animated::Model_Scene_Animated() : numAnims(0), animState(STATE_IDLE) {
+Model_Scene_Animated::Model_Scene_Animated() : numAnims(0) {
 	for (int i = 0; i < MAX_OBJECT_NUM; i++) {
-		currentAnimTime[i] = 0;
+		currentAnim[i] = nullptr;
 		recentAnim[i] = nullptr;
+		currentAnimTime[i] = 0;
+		interpolateFactor[i] = 0.0f;
+		animState[i] = STATE_IDLE;
+		playCount[i] = 0;
+		loopAnim[i] = false;
+		HandMatrix[i] = mat4(1);
 	}
 }
 
@@ -89,7 +95,7 @@ void Model_Scene_Animated::LoadAdditionalAnims(FileInfo &fileInfo) {
 	while (iter != fileInfo.animList.end()) {
 		Assimp::Importer animImporter;
 		string file = fileInfo.filePath + *iter;
-		animImporter.ReadFile(file, aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes);
+		animImporter.ReadFile(file, aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_FindDegenerates | aiProcess_SplitLargeMeshes);
 		const aiScene *anim_temp = animImporter.GetOrphanedScene();
 		
 		animations[newStart] = anim_temp->mAnimations[0];
@@ -103,14 +109,14 @@ void Model_Scene_Animated::LoadAdditionalAnims(FileInfo &fileInfo) {
 		}
 		animations[newStart].name = buffer;
 		newStart++;
-		iter++;
+		++iter;
 	}
 }
 
 void Model_Scene_Animated::LoadScene(FileInfo &fileInfo) {
 	Assimp::Importer importer;
 
-	importer.ReadFile(fileInfo.fullPath.data(), aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes);
+	importer.ReadFile(fileInfo.fullPath.data(), aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes | aiProcess_FindDegenerates | aiProcess_SplitLargeMeshes);
 	const aiScene *scene = importer.GetOrphanedScene();
 
 	// Stage 1 : Mesh generation
@@ -118,6 +124,7 @@ void Model_Scene_Animated::LoadScene(FileInfo &fileInfo) {
 	numVertex.resize(mesh.size());
 	for (int i = 0; i < scene->mNumMeshes; i++) {
 		mesh[i] = scene->mMeshes[i];
+
 		numVertex[i] = mesh[i].vertex_model.size();
 	}
 
@@ -145,20 +152,34 @@ void Model_Scene_Animated::LoadScene(FileInfo &fileInfo) {
 		if (scene->mMaterials[i]->GetTexture(aiTextureType_DIFFUSE, 0, &buffer) == AI_SUCCESS) {
 			materials[i].texture_diffuse = buffer.data;
 			materials[i].useTexture = true;
-
 			// **** Temporary patch for texture load ****
 			if (materials[i].texture_diffuse[0] == '.')
 				materials[i].texture_diffuse = materials[i].texture_diffuse.substr(3, materials[i].texture_diffuse.length() - 3);
 			
-			GLuint tbo_temp;
-			glGenTextures(1, &tbo_temp);
-			glActiveTexture(GL_TEXTURE0 + tbo_temp);
-			glBindTexture(GL_TEXTURE_2D, tbo_temp);
+			glGenTextures(1, &materials[i].tbo_diffuse);
+			glActiveTexture(GL_TEXTURE0 + materials[i].tbo_diffuse);
+			glBindTexture(GL_TEXTURE_2D, materials[i].tbo_diffuse);
 			LoadTexture((fileInfo.filePath + materials[i].texture_diffuse).data());
 			glGenerateMipmap(GL_TEXTURE_2D);
-			materials[i].tbo_diffuse = tbo_temp;
 
-			printf("%s\n", (fileInfo.filePath + materials[i].texture_diffuse).data());
+			//printf("%s\n", (fileInfo.filePath + materials[i].texture_diffuse).data());
+			if (scene->mMaterials[i]->GetTexture(aiTextureType_NORMALS, 0, &buffer) == AI_SUCCESS) {
+				materials[i].texture_normal = buffer.data;
+				materials[i].useTexture = true;
+				// **** Temporary patch for texture load ****
+				if (materials[i].texture_normal[0] == '.')
+					materials[i].texture_normal = materials[i].texture_normal.substr(3, materials[i].texture_normal.length() - 3);
+
+				glGenTextures(1, &materials[i].tbo_normal);
+				glActiveTexture(GL_TEXTURE0 + materials[i].tbo_normal);
+				glBindTexture(GL_TEXTURE_2D, materials[i].tbo_normal);
+				LoadTexture((fileInfo.filePath + materials[i].texture_normal).data());
+				glGenerateMipmap(GL_TEXTURE_2D);
+				//printf("%s\n", (fileInfo.filePath + materials[i].texture_normal).data());
+			}
+			else {
+				materials[i].tbo_normal = -1;
+			}
 		}
 		aiColor4D ambient, diffuse, specular;
 		aiGetMaterialColor(scene->mMaterials[i], AI_MATKEY_COLOR_AMBIENT, &ambient);
@@ -226,11 +247,14 @@ void Model_Scene_Animated::NodePostProcess(Model_Node *node) {
 	}
 }
 
-void Model_Scene_Animated::PlayAnim(const string &animName, const int &objectNum, const int &playCount) {
+int Model_Scene_Animated::PlayAnim(const string &animName, const int &objectNum, const int &playCount, const bool &loopAnim) {
 	recentAnim[objectNum] = currentAnim[objectNum];
 	currentAnim[objectNum] = FindAnim(animName);
 	this->playCount[objectNum] = playCount;
-	animState = STATE_SWITCHING;
+	animState[currentObjectNum] = STATE_SWITCHING;
+	this->loopAnim[objectNum] = loopAnim;
+
+	return currentAnim[currentObjectNum]->duration / currentAnim[currentObjectNum]->tickPerSec * 1000;
 }
 
 void Model_Scene_Animated::MaintainAnim(const int &objectNum) {
@@ -244,30 +268,35 @@ void Model_Scene_Animated::Reset(const int &objectNum) {
 
 void Model_Scene_Animated::UpdateBoneMatrix(int timeElapsed, mat4 &WorldMatrix, int currentObjectNum) {
 	this->currentObjectNum = currentObjectNum;
-	if (animState == STATE_PLAYING) {
+	switch (animState[currentObjectNum]) {
+	case STATE_PLAYING:
 		UpdateBoneMatrix_u(&rootNode, WorldMatrix);
-		if (playCount[currentObjectNum] <= 0) {
-			animState = STATE_IDLE;
+		if (playCount[currentObjectNum] <= 0 && loopAnim[currentObjectNum] == false) {
+			animState[currentObjectNum] = STATE_IDLE;
 			return;
 		}
 		currentAnimTime[this->currentObjectNum] += timeElapsed;
-	}
-	else if (animState == STATE_SWITCHING) {
+		break;
+	case STATE_SWITCHING:
 		UpdateBoneMatrix_c(&rootNode, WorldMatrix);
 		if (interpolateFactor[currentObjectNum] > 1.0f) {
 			interpolateFactor[currentObjectNum] = 0;
-			animState = STATE_PLAYING;
+			animState[currentObjectNum] = STATE_PLAYING;
 			return;
 		}
 		interpolateFactor[currentObjectNum] += 0.1f;
-	}
-	else if (animState == STATE_IDLE) {
+		break;
+	case STATE_IDLE:
 		Record(this->currentObjectNum);
 		Reset(this->currentObjectNum);
-		PlayAnim("Idle", this->currentObjectNum, 100);
+		PlayAnim("Idle", this->currentObjectNum, 100, true);
+		break;
+	default:
+		break;
 	}
 }
 
+// Recursive bone calculation for animation
 void Model_Scene_Animated::UpdateBoneMatrix_u(Model_Node *node, mat4 &ParentModelMatrix) {
 
 	Model_NodeAnim *nodeAnim = FindNodeAnim(node->name);
@@ -277,7 +306,7 @@ void Model_Scene_Animated::UpdateBoneMatrix_u(Model_Node *node, mat4 &ParentMode
 		if (currentTick > currentAnim[currentObjectNum]->duration) {
 			currentTick -= currentAnim[currentObjectNum]->duration;
 			currentAnimTime[currentObjectNum] = 0;
-			if(playCount[currentObjectNum] < 100)
+			if(loopAnim[currentObjectNum] != true)
 				playCount[currentObjectNum] -= 1;
 		}
 		node->transformation_u[currentObjectNum] = ParentModelMatrix * nodeAnim->CalcTransform(currentTick, currentAnim[currentObjectNum]->duration);
@@ -285,15 +314,20 @@ void Model_Scene_Animated::UpdateBoneMatrix_u(Model_Node *node, mat4 &ParentMode
 	else {
 		node->transformation_u[currentObjectNum] = ParentModelMatrix * node->transformation;
 	}
-
+	
 	for (int i = 0; i < numMeshes; i++) {
 		int boneIndex;
+
 		if (mesh[i].boneMap.find(node->name.data()) != mesh[i].boneMap.end()) {
 			boneIndex = mesh[i].boneMap[node->name.data()];
 			mesh[i].boneMatrix_u[currentObjectNum][boneIndex] = 
 				GlobalInvMatrix * node->transformation_u[currentObjectNum] * mesh[i].boneMatrix[boneIndex];
-			break;
+			
 		}
+	}
+
+	if (strcmp(node->name.data(), "CATRigRArmDigit32") == 0) {
+		HandMatrix[currentObjectNum] = node->transformation_u[currentObjectNum];
 	}
 
 	for (int i = 0; i < node->numChild; i++) {
@@ -301,6 +335,7 @@ void Model_Scene_Animated::UpdateBoneMatrix_u(Model_Node *node, mat4 &ParentMode
 	}
 }
 
+// Recursive bone calculation to switch animation state
 void Model_Scene_Animated::UpdateBoneMatrix_c(Model_Node *node, mat4 &ParentModelMatrix) {
 
 	Model_NodeAnim *nodeAnim_c = FindNodeAnim_c(node->name);
@@ -319,7 +354,6 @@ void Model_Scene_Animated::UpdateBoneMatrix_c(Model_Node *node, mat4 &ParentMode
 			boneIndex = mesh[i].boneMap[node->name.data()];
 			mesh[i].boneMatrix_u[currentObjectNum][boneIndex] =
 				GlobalInvMatrix * node->transformation_u[currentObjectNum] * mesh[i].boneMatrix[boneIndex];
-			break;
 		}
 	}
 

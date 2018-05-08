@@ -14,7 +14,7 @@ GameManager::~GameManager() {
 	delete gameObject;
 }
 #define TERRAIN_WIDTH 2048
-#define RADIUS 200.0f
+#define RADIUS 40.0f
 void GameManager::Initiate(const float &viewportX, const float &viewportY) {
 	flags_io = new Flags_IO;
 	flags_io->viewport = vec2(viewportX, viewportY);
@@ -25,11 +25,12 @@ void GameManager::Initiate(const float &viewportX, const float &viewportY) {
 	gameObject->light = new Light;
 	gameObject->mesh_terrain = new Mesh_Terrain;
 	gameObject->terrain = new Terrain;
+	gameObject->sun = new Sun;
 	gameObject->texture_terrain = new Texture_Terrain;
 	gameObject->render_terrain = new Render_Terrain;
 	gameObject->render_point = new Render_Point;
 	gameObject->render_postprocess = new Render_Postprocess;
-	gameObject->render_sphere = new Render_Sphere;
+	gameObject->render_skymap = new Render_Skymap;
 	gameObject->render_water = new Render_Water;
 	gameObject->render_particles = new Render_Particles;
 	gameObject->render_models_animated = new Render_Models_Animated;
@@ -37,6 +38,15 @@ void GameManager::Initiate(const float &viewportX, const float &viewportY) {
 	gameObject->render_button = new Render_Button;
 	gameObject->render_text = new Render_Text;
 	gameObject->render_progressBar = new Render_ProgressBar;
+	gameObject->render_physics = new Render_Physics_CS;
+	gameObject->render_sun = new Render_Sun;
+	gameObject->render_sphere = new Render_Sphere;
+	gameObject->render_sphere->Initiate();
+	gameObject->render_line = new Render_Line;
+	gameObject->render_line->Initiate();
+	gameObject->render_collider = new Render_Collider;
+	gameObject->render_collider->SetRenderer(gameObject->render_sphere, RENDERER_SPHERE);
+	gameObject->render_collider->Initiate();
 	gameObject->editor_terrain = new Editor_Terrain;
 	gameObject->objFinder_editor = new ObjectFinder;
 	gameObject->controller_character = new Controller_Character;
@@ -45,7 +55,14 @@ void GameManager::Initiate(const float &viewportX, const float &viewportY) {
 	gameObject->camera = new Camera(flags_io->viewport);
 	gameObject->gui = new GUI(flags_io->viewport);
 	gameObject->editor_terrain = new Editor_Terrain;
+	gameObject->pathFinder = new PathFinder_Master;
+	gameObject->pathFinder->CreateGroup();
 	gameObject->postprocess = new Postprocess;
+	gameObject->particleSystem = new Particle_Master;
+	gameObject->spellController = new SpellController;
+	gameObject->spellController->SetParticleMaster(gameObject->particleSystem);
+	gameObject->render_hud = new Render_HUD;
+	gameObject->render_hud->Initiate();
 
 	// Set framebuffer
 	gameObject->framebuffer->SetViewport(&flags_io->viewport);
@@ -93,6 +110,9 @@ void GameManager::EnterScene(const int &scene) {
 		case SCENE_LOAD_TERE:
 			Scene_LoadTerrainEditor();
 			break;
+		case SCENE_LOAD_GAMEPLAY:
+			Scene_LoadGameplay();
+			break;
 		default:
 			break;
 	}
@@ -112,6 +132,8 @@ void GameManager::MenuStatusFunc(int status, int x, int y) {
 }
 
 void GameManager::Scene_Greetings() {
+	gameObject->render_physics->InitScene();
+	gameObject->particleSystem->Initiate();
 	gameObject->gui->EnterScene(SCENE_GREETING);
 }
 
@@ -122,8 +144,11 @@ void GameManager::Scene_LoadObjectEditor() {
 			break;
 		case LOADING_LIGHT:
 			// Set light
-			gameObject->light->AddLight(glm::vec3(350.0f, 100.0f, -400.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.1f, 0.2f, 1.0f), 20000.0f);
-			gameObject->light->AddLight(glm::vec3(550.0f, 100.0f, -300.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.1f, 0.2f, 1.0f), 20000.0f);
+			gameObject->light->AddLight(vec3(1200.0f, 1900.0f, -4000.0f), normalize(vec3(-1200.0f, -1900.0f, 4000.0f)), vec3(0.1f, 0.2f, 1.0f), 0.6f);
+			gameObject->light->AddLight(vec3(550.0f, 100.0f, -300.0f), vec3(0.0f, -1.0f, 0.0f), vec3(0.1f, 0.2f, 1.0f), 10000.0f);
+			gameObject->light->AddLight(vec3(620.0f, 50.0f, -230.0f), vec3(0.0f, -1.0f, 0.0f), vec3(0.1f, 0.2f, 1.0f), 5000.0f);
+			gameObject->sun->SetPosition(&gameObject->light->position[0]);
+			gameObject->sun->Initiate();
 			break;
 		case LOADING_MESH_TERRAIN:
 			// Set terrain mesh
@@ -132,15 +157,20 @@ void GameManager::Scene_LoadObjectEditor() {
 			break;
 		case LOADING_TERRAIN:
 			// Set terrain index
-			gameObject->terrain->SetRadius(RADIUS);
 			gameObject->terrain->SetMesh(gameObject->mesh_terrain);
 			gameObject->terrain->Initiate(TERRAIN_WIDTH, LD, vec2(0), TERRAIN_WIDTH);
+			gameObject->terrain->SetRadius(RADIUS);
 			gameObject->terrain->GenObject();
 			break;
 		case LOADING_TEXTURE_TERRAIN:
 			// Set terrain texture
 			gameObject->texture_terrain->SetMesh(gameObject->mesh_terrain);
 			gameObject->texture_terrain->GenTextures();
+			break;
+		case LOADING_RENDERER_SUN:
+			// Set sun renderer
+			gameObject->render_sun->SetData(gameObject->sun);
+			gameObject->render_sun->Initiate();
 			break;
 		case LOADING_RENDERER_TERRAIN:
 			// Set terrain renderer
@@ -156,8 +186,8 @@ void GameManager::Scene_LoadObjectEditor() {
 			break;
 		case LOADING_RENDERER_SPHERE:
 			// Set sphere renderer
-			gameObject->render_sphere->Initiate();
-			gameObject->render_sphere->EnableSkyMode();
+			gameObject->render_skymap->Initiate();
+			gameObject->render_skymap->EnableSkyMode();
 			break;
 		case LOADING_RENDERER_WATER:
 			// Set water renderer
@@ -168,14 +198,14 @@ void GameManager::Scene_LoadObjectEditor() {
 			break;
 		case LOADING_RENDERER_ANIMATED:
 			// Set animated model renderer
-			gameObject->render_models_animated->SetDrawRadius(RADIUS);
+			gameObject->render_models_animated->SetDrawRadius(RADIUS * 5);
 			gameObject->render_models_animated->SetFramebuffer(gameObject->framebuffer);
 			gameObject->render_models_animated->SetLight(gameObject->light);
 			gameObject->render_models_animated->InitModelRenderer();
 			break;
 		case LOADING_RENDERER_STATIC:
 			// Set static model renderer
-			gameObject->render_models_static->SetDrawRadius(RADIUS);
+			gameObject->render_models_static->SetDrawRadius(RADIUS * 5);
 			gameObject->render_models_static->SetLight(gameObject->light);
 			gameObject->render_models_static->InitModelRenderer();
 			break;
@@ -191,20 +221,24 @@ void GameManager::Scene_LoadObjectEditor() {
 			// Set model transform loader
 			gameObject->objFinder_editor->SetRenderer(gameObject->render_models_static, gameObject->render_models_animated);
 			gameObject->loader->ReadFile("Res/Models/ModelTransform.mdl");
+			printf("========================================\n");
 			for (int i = 0; i < gameObject->loader->numObjects; i++) {
 				switch (gameObject->loader->objInfo[i].tag) {
 				case 0:
 					gameObject->player = gameObject->controller_character->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
 					break;
-				case 1:
-					break;
+				case 1: // Same as case 2
 				case 2:
 					gameObject->controller_static->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
+					break;
+				case 3:
+					gameObject->controller_character->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
 					break;
 				default:
 					break;
 				}
 			}
+			printf("========================================\n");
 			break;
 		case LOADING_GLUT_MENU:
 			// Set glut menu
@@ -217,6 +251,10 @@ void GameManager::Scene_LoadObjectEditor() {
 			// Set camera
 			gameObject->camera->SetReference(gameObject->player);
 			gameObject->camera->SetPov(THIRD_PERSON);
+			break;
+		case LOADING_PARTICLESYS:
+			// Set particle system v2
+			gameObject->particleSystem->Initiate();
 			break;
 		case LOADING_FINISHED:
 			// Set GUI
@@ -238,7 +276,10 @@ void GameManager::Scene_LoadTerrainEditor() {
 			break;
 		case LOADING_LIGHT:
 			// Set light
-			gameObject->light->AddLight(glm::vec3(350.0f, 100.0f, -400.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.1f, 0.2f, 1.0f), 20000.0f);
+			gameObject->light->AddLight(vec3(1200.0f, 1900.0f, -4000.0f), normalize(vec3(-1200.0f, -1900.0f, 4000.0f)), vec3(0.1f, 0.2f, 1.0f), 0.6f);
+			gameObject->light->AddLight(vec3(550.0f, 100.0f, -300.0f), vec3(0.0f, -1.0f, 0.0f), vec3(0.1f, 0.2f, 1.0f), 10000.0f);
+			gameObject->sun->SetPosition(&gameObject->light->position[0]);
+			gameObject->sun->Initiate();
 			break;
 		case LOADING_MESH_TERRAIN:
 			// Set terrain mesh
@@ -257,9 +298,14 @@ void GameManager::Scene_LoadTerrainEditor() {
 			gameObject->texture_terrain->SetMesh(gameObject->mesh_terrain);
 			gameObject->texture_terrain->GenTextures();
 			break;
+		case LOADING_RENDERER_SUN:
+			// Set sun renderer
+			gameObject->render_sun->SetData(gameObject->sun);
+			gameObject->render_sun->Initiate();
+			break;
 		case LOADING_RENDERER_TERRAIN:
 			// Set terrain renderer
-			gameObject->render_terrain->EnableMode(FAST_MODE);
+			//gameObject->render_terrain->EnableMode(FAST_MODE);
 			gameObject->render_terrain->SetTerrainWidth(TERRAIN_WIDTH);
 			gameObject->render_terrain->SetTexture_Terrain(gameObject->texture_terrain);
 			gameObject->render_terrain->SetFramebuffer(gameObject->framebuffer);
@@ -276,6 +322,54 @@ void GameManager::Scene_LoadTerrainEditor() {
 		case LOADING_RENDERER_POINT:
 			// Set point renderer
 			gameObject->render_point->Initiate();
+			break;
+		case LOADING_RENDERER_SPHERE:
+			// Set sphere renderer
+			gameObject->render_skymap->Initiate();
+			gameObject->render_skymap->EnableSkyMode();
+			break;
+		case LOADING_RENDERER_WATER:
+			// Set water renderer
+			gameObject->render_water->SetFramebuffer(gameObject->framebuffer);
+			gameObject->render_water->SetLight(gameObject->light);
+			gameObject->render_water->InitWaterRenderer();
+			gameObject->render_water->AddWater(vec2(TERRAIN_WIDTH / 2), vec3(TERRAIN_WIDTH / 2, 5.0f, -TERRAIN_WIDTH / 2));
+			break;
+		case LOADING_RENDERER_ANIMATED:
+			// Set animated model renderer
+			gameObject->render_models_animated->SetDrawRadius(RADIUS * 5);
+			gameObject->render_models_animated->SetFramebuffer(gameObject->framebuffer);
+			gameObject->render_models_animated->SetLight(gameObject->light);
+			gameObject->render_models_animated->InitModelRenderer();
+			break;
+		case LOADING_RENDERER_STATIC:
+			// Set static model renderer
+			gameObject->render_models_static->SetDrawRadius(RADIUS * 5);
+			gameObject->render_models_static->SetLight(gameObject->light);
+			gameObject->render_models_static->InitModelRenderer();
+			break;
+		case LOADING_CONTROLLER_ANIMATED:
+			// Set animated character controller
+			gameObject->controller_character->InitController(gameObject->render_models_animated, gameObject->mesh_terrain);
+			break;
+		case LOADING_CONTROLLER_STATIC:
+			// Set static character controller
+			gameObject->controller_static->InitController(gameObject->render_models_static, gameObject->mesh_terrain);
+			break;
+		case LOADING_MODEL_TRANSFORM_LOADER:
+			// Set model transform loader
+			gameObject->loader->ReadFile("Res/Models/ModelTransform.mdl");
+			printf("========================================\n");
+			for (int i = 0; i < gameObject->loader->numObjects; i++) {
+				switch (gameObject->loader->objInfo[i].tag) {
+				case 0:
+					gameObject->player = gameObject->controller_character->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
+					break;
+				default:
+					break;
+				}
+			}
+			printf("========================================\n");
 			break;
 		case LOADING_CAMERA:
 			// Set camera
@@ -297,6 +391,131 @@ void GameManager::Scene_LoadTerrainEditor() {
 	flags_io->loadSequence++;
 }
 
+void GameManager::Scene_LoadGameplay() {
+	switch (flags_io->loadSequence) {
+		case LOADING_GUI:
+			gameObject->gui->EnterScene(SCENE_LOAD_GAMEPLAY);
+			break;
+		case LOADING_LIGHT:
+			// Set light
+			gameObject->light->AddLight(vec3(1200.0f, 1900.0f, -4000.0f), normalize(vec3(-1200.0f, -1900.0f, 4000.0f)), vec3(0.1f, 0.2f, 1.0f), 0.6f);
+			gameObject->light->AddLight(vec3(550.0f, 100.0f, -300.0f), vec3(0.0f, -1.0f, 0.0f), vec3(0.1f, 0.2f, 1.0f), 10000.0f);
+			gameObject->light->AddLight(vec3(620.0f, 50.0f, -230.0f), vec3(0.0f, -1.0f, 0.0f), vec3(0.1f, 0.2f, 1.0f), 5000.0f);
+			gameObject->sun->SetPosition(&gameObject->light->position[0]);
+			gameObject->sun->Initiate();
+			break;
+		case LOADING_MESH_TERRAIN:
+			// Set terrain mesh
+			gameObject->mesh_terrain->SetDimension(TERRAIN_WIDTH, vec2(0));
+			gameObject->mesh_terrain->Initiate();
+			break;
+		case LOADING_TERRAIN:
+			// Set terrain index
+			gameObject->terrain->SetMesh(gameObject->mesh_terrain);
+			gameObject->terrain->Initiate(TERRAIN_WIDTH, LD, vec2(0), TERRAIN_WIDTH);
+			gameObject->terrain->SetRadius(RADIUS);
+			gameObject->terrain->GenObject();
+			break;
+		case LOADING_TEXTURE_TERRAIN:
+			// Set terrain texture
+			gameObject->texture_terrain->SetMesh(gameObject->mesh_terrain);
+			gameObject->texture_terrain->GenTextures();
+			break;
+		case LOADING_RENDERER_SUN:
+			// Set sun renderer
+			gameObject->render_sun->SetData(gameObject->sun);
+			gameObject->render_sun->Initiate();
+			break;
+		case LOADING_RENDERER_TERRAIN:
+			// Set terrain renderer
+			gameObject->render_terrain->SetTerrainWidth(TERRAIN_WIDTH);
+			gameObject->render_terrain->SetTexture_Terrain(gameObject->texture_terrain);
+			gameObject->render_terrain->SetFramebuffer(gameObject->framebuffer);
+			gameObject->render_terrain->SetLight(gameObject->light);
+			gameObject->render_terrain->Initiate();
+			break;
+		case LOADING_RENDERER_POINT:
+			// Set point renderer
+			gameObject->render_point->Initiate();
+			break;
+		case LOADING_RENDERER_SPHERE:
+			// Set sphere renderer
+			gameObject->render_skymap->Initiate();
+			gameObject->render_skymap->EnableSkyMode();
+			break;
+		case LOADING_RENDERER_WATER:
+			// Set water renderer
+			gameObject->render_water->SetFramebuffer(gameObject->framebuffer);
+			gameObject->render_water->SetLight(gameObject->light);
+			gameObject->render_water->InitWaterRenderer();
+			gameObject->render_water->AddWater(vec2(TERRAIN_WIDTH / 2), vec3(TERRAIN_WIDTH / 2, 5.0f, -TERRAIN_WIDTH / 2));
+			break;
+		case LOADING_RENDERER_ANIMATED:
+			// Set animated model renderer
+			gameObject->render_models_animated->SetDrawRadius(RADIUS * 5);
+			gameObject->render_models_animated->SetFramebuffer(gameObject->framebuffer);
+			gameObject->render_models_animated->SetLight(gameObject->light);
+			gameObject->render_models_animated->InitModelRenderer();
+			break;
+		case LOADING_RENDERER_STATIC:
+			// Set static model renderer
+			gameObject->render_models_static->SetDrawRadius(RADIUS * 5);
+			gameObject->render_models_static->SetLight(gameObject->light);
+			gameObject->render_models_static->InitModelRenderer();
+			break;
+		case LOADING_CONTROLLER_ANIMATED:
+			// Set animated character controller
+			gameObject->controller_character->InitController(gameObject->render_models_animated, gameObject->mesh_terrain);
+			break;
+		case LOADING_CONTROLLER_STATIC:
+			// Set static character controller
+			gameObject->controller_static->InitController(gameObject->render_models_static, gameObject->mesh_terrain);
+			break;
+		case LOADING_MODEL_TRANSFORM_LOADER:
+			// Set model transform loader
+			gameObject->objFinder_editor->SetRenderer(gameObject->render_models_static, gameObject->render_models_animated);
+			gameObject->loader->ReadFile("Res/Models/ModelTransform.mdl");
+			printf("========================================\n");
+			for (int i = 0; i < gameObject->loader->numObjects; i++) {
+				switch (gameObject->loader->objInfo[i].tag) {
+				case 0:
+					gameObject->player = gameObject->controller_character->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
+					break;
+				case 1: // Same as case 2
+				case 2:
+					gameObject->controller_static->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
+					break;
+				case 3:
+					gameObject->controller_character->AddCharacter(gameObject->loader->objInfo[i], gameObject->objFinder_editor);
+					break;
+				default:
+					break;
+				}
+			}
+			printf("========================================\n");
+			break;
+		case LOADING_CAMERA:
+			// Set camera
+			gameObject->camera->SetReference(gameObject->player);
+			gameObject->camera->SetPov(THIRD_PERSON);
+			break;
+		case LOADING_PARTICLESYS:
+			// Set particle system v2
+			gameObject->particleSystem->Initiate();
+			break;
+		case LOADING_FINISHED:
+			// Set GUI
+			gameObject->gui->EnterScene(SCENE_GAMEPLAY);
+			flags_io->sceneState = SCENE_GAMEPLAY;
+			break;
+		default:
+			break;
+	}
+	if(flags_io->loadSequence != LOADING_FINISHED)
+		flags_io->sceneSwitch = true;
+	flags_io->loadSequence++;
+}
+
 void GameManager::CleanUp() {
 	delete gameObject->camera;
 	gameObject->player = nullptr;
@@ -306,7 +525,7 @@ void GameManager::CleanUp() {
 	delete gameObject->render_models_static;
 	delete gameObject->render_models_animated;
 	delete gameObject->render_water;
-	delete gameObject->render_sphere;
+	delete gameObject->render_skymap;
 	delete gameObject->render_point;
 	delete gameObject->render_terrain;
 	delete gameObject->terrain;

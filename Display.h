@@ -25,15 +25,18 @@ private:
 	void Draw_Loading_ObjectEditor();
 	void Draw_ObjectEditor();
 	void Draw_TerrainEditor();
+	void Draw_Gameplay();
 	void DrawOffscreen_Water();
 	void DrawOffscreen_Shadowmap();
 	void DrawTerrain(Terrain *terrain, const glm::mat4 &VP);
 	void DrawTerrain_R(Terrain *terrain);
+	void DrawSun();
 	void DrawOnscreen();
 	void DrawGUI();
 	void DrawPostprocess();
 	void CalcShadowbox();
-	void FPSCounter();
+	void FPSCounter_ObjectEditor();
+	void FPSCounter_Gameplay();
 
 	static Display *me;
 

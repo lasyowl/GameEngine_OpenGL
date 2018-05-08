@@ -13,10 +13,10 @@ public:
 	void DeleteCharacter(Character *target);
 	void UpdateCharacters();
 
+	std::list<Character> characters;
+
 private:
 	Render_Models_Animated *render_models_animated;
-
-	std::list<Character> characters;
 
 };
 #endif

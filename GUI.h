@@ -16,8 +16,7 @@ class Render_Text;
 class Render_ProgressBar;
 class Editor_Terrain;
 
-enum Index_GUI_Greetings { GRT_MAINSCREEN, GRT_ENT_OBJE, GRT_ENT_TERE, 
-	GRT_SIZE };
+enum Index_GUI_Greetings { GRT_MAINSCREEN, GRT_ENT_OBJE, GRT_ENT_TERE, GRT_ENT_GAMEPLAY, GRT_SIZE };
 enum Index_GUI_Loading { LOAD_MAINSCREEN, LOAD_SIZE };
 enum Index_GUI_ObjectEditor { OBJE_CHATBOX, OBJE_CHATIN, OBJE_BT_SAVE,
 	OBJE_FPS, OBJE_ABAR_WRAP, OBJE_SIZE };
@@ -25,6 +24,7 @@ enum Index_ABar_ObjectEditor { ABAR_OBJE_SCALE, ABAR_OBJE_R_X, ABAR_OBJE_R_Y,
 	ABAR_OBJE_R_Z, ABAR_OBJE_P_Y, ABAR_OBJE_SIZE };
 enum Index_GUI_TerrainEditor { TERE_ABAR_WRAP, TERE_BUTTON_SAVE, TERE_SIZE };
 enum Index_Abar_TerrainEditor { ABAR_TERE_BRUSHSIZE, ABAR_TERE_OPACITY, ABAR_TERE_SIZE };
+enum Index_GUI_Gameplay { GAME_CHATBOX, GAME_CHATIN, GAME_FPS, GAME_SIZE };
 
 enum Index_Font { FONT_GULIM, FONT_SIZE };
 
@@ -39,6 +39,7 @@ public:
 	void Scene_Loading();
 	void Scene_TerrainEditor();
 	void Scene_ObjectEditor();
+	void Scene_Gameplay();
 	void Activate();
 	void Deactivate();
 	void SetRender_Button(Render_Button *render_button);

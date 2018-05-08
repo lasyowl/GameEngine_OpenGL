@@ -15,3 +15,11 @@ void Light::AddLight(glm::vec3 position, glm::vec3 direction, glm::vec3 color, f
 	this->intensity.push_back(intensity);
 	numLight = this->position.size();
 }
+
+void Light::SetDirection(const int &index, const glm::vec3 &direction) {
+	this->direction[index] = direction;
+}
+
+void Light::SetIntensity(const int &index, const float &intensity) {
+	this->intensity[index] = intensity;
+}

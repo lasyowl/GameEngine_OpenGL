@@ -25,6 +25,7 @@ void GUI::EnterScene(const int &scene) {
 			break;
 		case SCENE_LOAD_TERE:
 		case SCENE_LOAD_OBJE:
+		case SCENE_LOAD_GAMEPLAY:
 			Cleanup();
 			Scene_Loading();
 			break;
@@ -35,6 +36,10 @@ void GUI::EnterScene(const int &scene) {
 		case SCENE_TERE:
 			Cleanup();
 			Scene_TerrainEditor();
+			break;
+		case SCENE_GAMEPLAY:
+			Cleanup();
+			Scene_Gameplay();
 			break;
 		default:
 			break;
@@ -168,6 +173,7 @@ void GUI::DrawTexts() {
 void GUI::DrawTexts(vector<Text> *textPtr) {
 	for (int i = 0; i < textPtr->size(); i++) {
 		Text *text = &(*textPtr)[i];
+
 		if (text->isActive == false)
 			continue;
 		render_text->SetTextureAtlas(text->font->tbo_font);
@@ -333,10 +339,11 @@ void GUI::Scene_Greetings() {
 	boxes[GRT_MAINSCREEN].Initiate();
 	boxes[GRT_MAINSCREEN].buttonId = GRT_MAINSCREEN;
 	boxes[GRT_MAINSCREEN].Activate();
-	GenButtonTexture(boxes[GRT_MAINSCREEN], "Res/Pictures/Ahri_main.jpg", "");
+	boxes[GRT_MAINSCREEN].color_background = vec4(1, 1, 1, 0);
+	GenButtonTexture(boxes[GRT_MAINSCREEN], "Res/Texture/Particle/noname.png", "");
 
 	GenButtonTexture(boxes[GRT_ENT_OBJE], "Res/Texture/UI/Button/Steel.tga", "");
-	for (int i = GRT_ENT_OBJE; i <= GRT_ENT_TERE; i++) {
+	for (int i = GRT_ENT_OBJE; i < GRT_SIZE; i++) {
 		boxes[i].SetOrigin(vec2(50, 200 - 50 * i));
 		boxes[i].SetSize(vec2(256, 30));
 		boxes[i].SetColor(vec4(1, 1, 1, 0.6f));
@@ -352,8 +359,10 @@ void GUI::Scene_Greetings() {
 		texts[i].Activate();
 	}
 	boxes[GRT_ENT_TERE].tbo_background = boxes[GRT_ENT_OBJE].tbo_background;
+	boxes[GRT_ENT_GAMEPLAY].tbo_background = boxes[GRT_ENT_OBJE].tbo_background;
 	texts[GRT_ENT_OBJE].AddMessage(L"Object editor!");
 	texts[GRT_ENT_TERE].AddMessage(L"Terrain editor!");
+	texts[GRT_ENT_GAMEPLAY].AddMessage(L"Game Start!");
 }
 
 void GUI::Scene_Loading() {
@@ -361,7 +370,7 @@ void GUI::Scene_Loading() {
 	boxes[LOAD_MAINSCREEN].SetSize(viewport);
 	boxes[LOAD_MAINSCREEN].Initiate();
 	boxes[LOAD_MAINSCREEN].Activate();
-	GenButtonTexture(boxes[LOAD_MAINSCREEN], "Res/Pictures/Load_screen.jpg", "");
+	GenButtonTexture(boxes[LOAD_MAINSCREEN], "Res/Pictures/bns.jpg", "");
 
 	texts.resize(LOAD_SIZE);
 	texts[LOAD_MAINSCREEN].SetOrigin(vec2(50, 100));
@@ -563,4 +572,49 @@ void GUI::Scene_TerrainEditor() {
 	}
 	aBars_name[ABAR_TERE_BRUSHSIZE].AddMessage(L"Brush Size");
 	aBars_name[ABAR_TERE_OPACITY].AddMessage(L"Opacity");
+}
+
+void GUI::Scene_Gameplay() {
+	filePath_progressBar = "Res/Texture/UI/ProgressBar/";
+
+	boxes.resize(GAME_SIZE);
+	texts.resize(GAME_SIZE);
+
+	// Chatter box
+	texts[GAME_CHATBOX].SetSize(vec2(300, 200));
+	texts[GAME_CHATBOX].SetFont(&fonts[FONT_GULIM]);
+	texts[GAME_CHATBOX].SetOrigin(vec2(20, 45));
+	texts[GAME_CHATBOX].AddMessage(L"======System message display box======");
+	texts[GAME_CHATBOX].AddMessage(L"T : Display collider");
+	texts[GAME_CHATBOX].AddMessage(L"1~5 : Cast magic");
+	texts[GAME_CHATBOX].AddMessage(L"한글도 지원 가능!");
+	texts[GAME_CHATBOX].SetColor(vec4(0.1f, 0.5f, 0.8f, 0.5f), vec4(0.9f, 0.6f, 0.3f, 1));
+	texts[GAME_CHATBOX].Activate();
+	boxes[GAME_CHATBOX].SetOrigin(vec2(20, 45));
+	boxes[GAME_CHATBOX].SetSize(vec2(300, 200));
+	boxes[GAME_CHATBOX].SetColor(vec4(0.1f, 0.1f, 0.1f, 0.5f));
+	boxes[GAME_CHATBOX].Initiate();
+	boxes[GAME_CHATBOX].buttonId = GAME_CHATBOX;
+	boxes[GAME_CHATBOX].Activate();
+
+	// Chatter box (input)
+	boxes[GAME_CHATIN].SetOrigin(vec2(20, 20));
+	boxes[GAME_CHATIN].SetSize(vec2(300, 20));
+	boxes[GAME_CHATIN].SetColor(vec4(0.1f, 0.1f, 0.1f, 0.6f));
+	boxes[GAME_CHATIN].Initiate();
+	boxes[GAME_CHATIN].buttonId = GAME_CHATIN;
+	boxes[GAME_CHATIN].Activate();
+	texts[GAME_CHATIN].SetOrigin(vec2(20, 20));
+	texts[GAME_CHATIN].SetFont(&fonts[FONT_GULIM]);
+	texts[GAME_CHATIN].SetSize(vec2(300, 20));
+	texts[GAME_CHATIN].SetColor(vec4(1, 1, 1, 1), vec4(1, 1, 1, 1));
+	texts[GAME_CHATIN].Activate();
+
+	// FPS counter
+	texts[GAME_FPS].SetOrigin(vec2(viewport.x - 100, viewport.y - 50));
+	texts[GAME_FPS].SetSize(vec2(100, 50));
+	texts[GAME_FPS].SetFont(&fonts[FONT_GULIM]);
+	texts[GAME_FPS].SetFontSize(0.8f);
+	texts[GAME_FPS].SetColor(vec4(0.1f, 0.1f, 0.1f, 1.0f), vec4(0.1f, 0.1f, 0.1f, 1.0f));
+	texts[GAME_FPS].Activate();
 }

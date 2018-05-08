@@ -1,6 +1,6 @@
 #version 430
 
-layout( local_size_x = 10, local_size_y = 10 ) in;
+layout( local_size_x = 20, local_size_y = 20 ) in;
 
 layout(std430, binding=0) buffer PosIn {
   vec4 Position[];

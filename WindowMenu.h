@@ -23,7 +23,8 @@ private:
 
 	int GenObjectLoaderMenu();
 	static void RunObjectLoaderMenu(int menuHandle);
-	static void RunAnimatedObjectMenu(int menuHandle);
+	static void RunAnimatedObjectMenu_Player(int menuHandle);
+	static void RunAnimatedObjectMenu_Enemy(int menuHandle);
 	static void RunStaticObjectMenu(int menuHandle);
 
 	ObjectFinder *objFinder;

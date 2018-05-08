@@ -21,7 +21,7 @@ public:
 	void BindVao_Model(int index);
 	void BindVao_SelectionBox(int index);
 	void LoadScene(FileInfo &fileInfo);
-	void PlayAnim(const std::string &animName, const int &objectNum, const int &playCount);
+	int PlayAnim(const std::string &animName, const int &objectNum, const int &playCount, const bool &loopAnim = false);
 	void MaintainAnim(const int &objectNum);
 	int GetNumVao();
 	int GetNumVertex(int index);
@@ -39,6 +39,7 @@ public:
 	std::vector<Model_Animation> animations;
 	int numMaterials;
 	std::vector<Model_Material> materials;
+	glm::mat4 HandMatrix[MAX_OBJECT_NUM];
 
 	SelectionBox selectionBox;
 
@@ -72,8 +73,9 @@ private:
 	int currentAnimTime[MAX_OBJECT_NUM];
 	float interpolateFactor[MAX_OBJECT_NUM];
 	int currentObjectNum;
-	int animState;
+	int animState[MAX_OBJECT_NUM];
 	int playCount[MAX_OBJECT_NUM];
+	bool loopAnim[MAX_OBJECT_NUM];
 
 	glm::vec3 worldPosition;
 };

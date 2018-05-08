@@ -20,8 +20,10 @@ uniform float light_intensity[MAX_NUM_LIGHT];
 uniform vec3 light_position[MAX_NUM_LIGHT];
 uniform vec3 light_direction[MAX_NUM_LIGHT];
 
-uniform float coef_ambient = 0.2f;
+uniform float coef_ambient = 0.3f;
 uniform vec3 color_diffuse = vec3(0.5f, 0.5f, 0.5f);
+vec4 color_specular = vec4(0.3f, 0.3f, 0.3f, 1.0f);
+uniform float const_specular = 5.0f;
 uniform float exponent_specular = 5.0f;
 
 uniform vec3 color_fog = vec3(0.5f, 0.5f, 0.8f);
@@ -33,24 +35,25 @@ uniform sampler2D tex_alphamap;
 uniform sampler2D tex_shadowmap;
 uniform float terrainDensity = 20.0f;
 
-vec4 color_specular = vec4(0.3f, 0.3f, 0.3f, 1.0f);
 vec3 tex_normal;
+vec2 fs_uv;
 
 uniform int highlight;
 uniform bool fastMode;
 
 vec4 GetTextureColor() {
 	vec4 returnColor;
-	vec4 alphaTex = texture(tex_alphamap, vs_uv / terrainDensity);
+	vec4 alphaTex = texture(tex_alphamap, vs_uv);
+	fs_uv = vs_uv * terrainDensity;
 
 	vec4 terrainTex[NUM_TERRAINPACK];
 	vec3 normalTex[NUM_TERRAINPACK];
 	vec4 specularTex[NUM_TERRAINPACK];
 
 	for(int i = 0; i < NUM_TERRAINPACK; i++) {
-		terrainTex[i] = texture(tex_terrainPack, vec3(vs_uv, i));
-		normalTex[i] = texture(tex_normalPack, vec3(vs_uv, i)).rgb;
-		specularTex[i] = texture(tex_specularPack, vec3(vs_uv, i));
+		terrainTex[i] = texture(tex_terrainPack, vec3(fs_uv, i));
+		normalTex[i] = texture(tex_normalPack, vec3(fs_uv, i)).rgb;
+		specularTex[i] = texture(tex_specularPack, vec3(fs_uv, i));
 	}
 
 	returnColor = terrainTex[0] * alphaTex.r + terrainTex[1] * alphaTex.g + terrainTex[2] * alphaTex.b + terrainTex[3] * alphaTex.a;
@@ -63,15 +66,15 @@ vec4 GetTextureColor() {
 
 vec4 GetTextureColor_NoUse() {
 	vec4 returnColor;
-	vec4 alphaTex = texture(tex_alphamap, vs_uv / terrainDensity);
+	vec4 alphaTex = texture(tex_alphamap, vs_uv);
 	alphaTex.rg *= 255;
 
-	vec4 terrain_A = texture(tex_terrainPack, vec3(vs_uv, int(alphaTex.r)));
-	vec4 terrain_B = texture(tex_terrainPack, vec3(vs_uv, int(alphaTex.g)));
-	vec3 normal_A = texture(tex_normalPack, vec3(vs_uv, int(alphaTex.r))).xyz;
-	vec3 normal_B = texture(tex_normalPack, vec3(vs_uv, int(alphaTex.g))).xyz;
-	vec4 specular_A = texture(tex_normalPack, vec3(vs_uv, int(alphaTex.r)));
-	vec4 specular_B = texture(tex_normalPack, vec3(vs_uv, int(alphaTex.g)));
+	vec4 terrain_A = texture(tex_terrainPack, vec3(fs_uv, int(alphaTex.r)));
+	vec4 terrain_B = texture(tex_terrainPack, vec3(fs_uv, int(alphaTex.g)));
+	vec3 normal_A = texture(tex_normalPack, vec3(fs_uv, int(alphaTex.r))).xyz;
+	vec3 normal_B = texture(tex_normalPack, vec3(fs_uv, int(alphaTex.g))).xyz;
+	vec4 specular_A = texture(tex_normalPack, vec3(fs_uv, int(alphaTex.r)));
+	vec4 specular_B = texture(tex_normalPack, vec3(fs_uv, int(alphaTex.g)));
 	returnColor = mix(terrain_A, terrain_B, alphaTex.b);
 	tex_normal = mix(normal_A, normal_B, alphaTex.b);
 	color_specular = mix(specular_A, specular_B, alphaTex.b);
@@ -118,7 +121,13 @@ void main() {
 		fs_normal = CalcNewNormal(fs_normal);
 		vec3 temp_vec3;
 
-		for(int i = 0; i < numLight; i++) {
+		// Sunlight
+		lightReflect_vector[0] = reflect(light_direction[0], fs_normal);
+		diffuse_factor += max(dot(-light_direction[0], fs_normal), 0.0f) * light_intensity[0];
+		specular_factor += max(pow(dot(lightReflect_vector[0], normalize(posToEye_vector)), exponent_specular), 0.0f) * light_intensity[0];
+
+		// Pointlight
+		for(int i = 1; i < numLight; i++) {
 			temp_vec3 = vs_position - light_position[i];
 			lightToPos_vector[i] = normalize(temp_vec3);
 			lightToPos_distance[i] = (temp_vec3 / lightToPos_vector[i]).x;
@@ -127,9 +136,9 @@ void main() {
 			specular_factor += max(pow(dot(lightReflect_vector[i], normalize(posToEye_vector)), exponent_specular), 0.0f) * light_intensity[i] / pow(lightToPos_distance[i], 2);
 		}
 		float bias = 0.005f * tan(acos(diffuse_factor));
-		bias = clamp(bias, 0, 0.001f);
+		bias = clamp(bias, 0, 0.0001f);
 
-		finalColor = texColor * (coef_ambient + diffuse_factor) + specular_factor * color_specular;
+		finalColor = texColor * (coef_ambient + diffuse_factor) + specular_factor * color_specular * const_specular;
 		finalColor.a = 1;
 
 		float shadowDepth = texture(tex_shadowmap, vs_shadow.xy).x;

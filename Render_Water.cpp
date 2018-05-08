@@ -12,6 +12,7 @@ Render_Water::Render_Water() : moveFactor(0.0f) {
 	vbo_mesh.resize(1);
 	vbo_normal.resize(1);
 	vbo_uv.resize(1);
+	varRender = new Var_Render;
 }
 
 Render_Water::~Render_Water() {
@@ -21,6 +22,7 @@ Render_Water::~Render_Water() {
 	glDeleteBuffers(1, &vbo_uv[0]);
 	glDeleteTextures(1, &texture_dudv);
 	glDeleteTextures(1, &texture_normal);
+	delete varRender;
 }
 
 void Render_Water::InitWaterRenderer() {
@@ -82,7 +84,6 @@ void Render_Water::GenShaderProgram() {
 }
 
 void Render_Water::GetShaderVar() {
-	varRender = new Var_Render;
 	varRender->loc_ModelViewProjectionMatrix = glGetUniformLocation(shaderProgram[0], "ModelViewProjectionMatrix");
 	varRender->loc_numLight = glGetUniformLocation(shaderProgram[0], "numLight");
 	varRender->loc_light_intensity = glGetUniformLocation(shaderProgram[0], "light_intensity");

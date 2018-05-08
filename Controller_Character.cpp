@@ -20,15 +20,19 @@ Character* Controller_Character::AddCharacter(const ObjectInfo &objectInfo, Obje
 	Character temp;
 	temp.Initiate(objectInfo, render_models_animated, mesh_terrain);
 	temp.objectFinder = objectFinder;
-	list<Character>::iterator iter = characters.end();
-	characters.insert(iter, temp);
-	iter--;
-	if (iter->Activate() == CHAR_ACTIV_FAIL)
-		characters.erase(iter);
-	iter->iter->character = &(*iter);
-	iter->objectFinder->AddObject(&(*iter->iter));
-	printf("%d animated characters exits\n", characters.size());
-	return &*iter;
+	list<Character>::iterator tempIter = characters.end();
+	characters.insert(tempIter, temp);
+	--tempIter;
+	if (tempIter->Activate() == CHAR_ACTIV_FAIL) {
+		characters.erase(tempIter);
+		return nullptr;
+	}
+	else {
+		//tempIter->iter->character = &(*tempIter);
+		tempIter->objectFinder->AddObject(&(*tempIter->iter));
+		printf("%d animated characters exits\n", characters.size());
+		return &*tempIter;
+	}
 }
 
 void Controller_Character::DeleteCharacter(Character *target) {

@@ -12,8 +12,7 @@ uniform mat4 ModelViewMatrix;
 uniform mat3 NormalMatrix;
 uniform mat4 MVP;
 
-void main()
-{
+void main() {
     Normal = normalize( NormalMatrix * VertexNormal);
     Position = vec3( ModelViewMatrix * vec4(VertexPosition,1.0) );
     TexCoord = VTexCoord;

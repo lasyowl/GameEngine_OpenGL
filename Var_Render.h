@@ -68,9 +68,24 @@ public:
 	GLuint loc_intensity;
 	GLuint loc_tex_framebuffer;
 	GLuint loc_fastMode;
+	GLuint loc_fakeLighting;
 	GLuint loc_tex_backgroundPack;
 	GLuint loc_tex_gblur;
 	GLuint loc_state_gblur;
+
+	GLuint loc_tex_core;
+	GLuint loc_tex_lens;
+	GLuint loc_sun_seq;
+	GLuint loc_angle;
+	GLuint loc_pos_collider;
+	GLuint loc_radius;
+	GLuint loc_width;
+	GLuint loc_height;
+	GLuint loc_spriteNum;
+	GLuint loc_cycleTime;
+	GLuint loc_loop;
+	GLuint loc_position;
+	GLuint loc_portion;
 
 	glm::mat4 ModelMatrix;
 	glm::mat4 ViewMatrix;

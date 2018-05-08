@@ -1,16 +1,16 @@
 #version 430
 
-layout( local_size_x = 10, local_size_y = 10 ) in;
+layout( local_size_x = 20, local_size_y = 20 ) in;
 
 uniform vec3 Gravity = vec3(0,-10,0);
-uniform float ParticleMass = 0.1;
-uniform float ParticleInvMass = 1.0 / 0.1;
+uniform float ParticleMass = 0.10;
+uniform float ParticleInvMass = 1.0 / 0.10;
 uniform float SpringK = 2000.0;
 uniform float RestLengthHoriz;
 uniform float RestLengthVert;
 uniform float RestLengthDiag;
 uniform float DeltaT = 0.000005;
-uniform float DampingConst = 0.1;
+uniform float DampingConst = 0.05;
 
 layout(std430, binding=0) buffer PosIn {
   vec4 PositionIn[];

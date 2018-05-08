@@ -1,6 +1,8 @@
 #ifndef __RENDER_H
 #define __RENDER_H
 
+#include "Var_Render.h"
+
 #include <vector>
 #include <GL/glew.h>
 #include <glm/glm.hpp>

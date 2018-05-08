@@ -10,11 +10,13 @@ using namespace std;
 using namespace glm;
 
 Render_Models_Static::Render_Models_Static() {
-	
+	varRender = new Var_Render;
+	varRender_selectionBox = new Var_Render;
 }
 
 Render_Models_Static::~Render_Models_Static() {
-
+	delete varRender;
+	delete varRender_selectionBox;
 }
 
 void Render_Models_Static::InitModelRenderer() {
@@ -30,6 +32,7 @@ void Render_Models_Static::Draw(mat4 ViewProjectionMatrix) {
 	while (iter != objectInfo.end()) {
 		currentObjectNum = iter->charIndex;
 		currentScene = &scene[iter->modelId];
+		FakeLight(iter);
 		if(distance(playerPos, iter->pos) < radius)
 			DrawNodeRecursive(&currentScene->rootNode, iter->TransformMatrix);
 		iter++;
@@ -108,7 +111,6 @@ void Render_Models_Static::GenShaderProgram() {
 
 void Render_Models_Static::GetShaderVar() {
 	glUseProgram(shaderProgram[0]);
-	varRender = new Var_Render;
 	varRender->loc_ModelViewProjectionMatrix = glGetUniformLocation(shaderProgram[0], "ModelViewProjectionMatrix");
 	varRender->loc_ViewProjectionMatrix = glGetUniformLocation(shaderProgram[0], "ViewProjectionMatrix");
 	varRender->loc_ModelMatrix = glGetUniformLocation(shaderProgram[0], "ModelMatrix");
@@ -128,9 +130,9 @@ void Render_Models_Static::GetShaderVar() {
 	varRender->loc_eye_position = glGetUniformLocation(shaderProgram[0], "eye_position");
 	varRender->loc_useTexture = glGetUniformLocation(shaderProgram[0], "useTexture");
 	varRender->loc_useNormalmap = glGetUniformLocation(shaderProgram[0], "useNormalmap");
+	varRender->loc_fakeLighting = glGetUniformLocation(shaderProgram[0], "fakeLighting");
 
 	glUseProgram(shaderProgram[1]);
-	varRender_selectionBox = new Var_Render;
 	varRender_selectionBox->loc_ViewProjectionMatrix = glGetUniformLocation(shaderProgram[1], "ViewProjectionMatrix");
 	varRender_selectionBox->loc_ModelMatrix = glGetUniformLocation(shaderProgram[1], "ModelMatrix");
 	varRender_selectionBox->loc_color_line = glGetUniformLocation(shaderProgram[1], "color_line");
@@ -166,6 +168,12 @@ void Render_Models_Static::SetShaderVar_SelectionBox() {
 	glUniformMatrix4fv(varRender_selectionBox->loc_ViewProjectionMatrix, 1, GL_FALSE, &varRender->ViewProjectionMatrix[0][0]);
 	glUniformMatrix4fv(varRender_selectionBox->loc_ModelMatrix, 1, GL_FALSE, &varRender->ModelMatrix[0][0]);
 	glUniform3fv(varRender_selectionBox->loc_color_line, 1, &varRender_selectionBox->color_line[0]);
+}
+
+void Render_Models_Static::FakeLight(const list<ObjectInfo>::iterator &iter) {
+	if (iter->tag == 1)
+		glUniform1i(varRender->loc_fakeLighting, true);
+	else glUniform1i(varRender->loc_fakeLighting, false);
 }
 
 void Render_Models_Static::SetLight(Light *light) {

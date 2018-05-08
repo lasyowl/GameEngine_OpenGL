@@ -7,12 +7,7 @@ Framebuffer::Framebuffer() {
 }
 
 Framebuffer::~Framebuffer() {
-	glDeleteFramebuffers(FB_SIZE, fbo);
-	glDeleteTextures(1, &colorTex_water_reflect);
-	glDeleteTextures(1, &colorTex_water_refract);
-	glDeleteTextures(1, &depthTex_water_reflect);
-	glDeleteTextures(1, &depthTex_water_refract);
-	glDeleteTextures(1, &depthTex_shadowmap);
+
 }
 
 void Framebuffer::InitFramebuffer() {

@@ -35,6 +35,7 @@ private:
 	void GenShaderProgram();
 	void GetShaderVar();
 	void SetShaderVar();
+	void FakeLight(const std::list<ObjectInfo>::iterator &iter);
 	void SetShaderVar_SelectionBox();
 	void DrawNodeRecursive(Model_Node *node, glm::mat4 &ParentModelMatrix);
 

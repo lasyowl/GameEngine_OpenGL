@@ -8,7 +8,9 @@ using namespace std;
 using namespace glm;
 
 Model_Mesh_Animated::Model_Mesh_Animated() : numBoneMatrix(0), materialIndex(-1) {
-
+	for (int i = 0; i < 8; i++) {
+		selectionBox.vertices[i] = vec3(0.0f);
+	}
 }
 
 Model_Mesh_Animated::~Model_Mesh_Animated() {

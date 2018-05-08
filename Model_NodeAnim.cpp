@@ -50,7 +50,7 @@ void Model_NodeAnim::operator = (aiNodeAnim *nodeAnim) {
 mat4 Model_NodeAnim::CalcTransform(float tick, float duration) {
 	this->tick = tick;
 	this->duration = duration;
-	this->durationInv = 1.0f / duration;
+	this->durationInv = 1.0f / (duration + 1);
 
 	mat4 answer = CalcT() * CalcR() * CalcS();
 
@@ -71,10 +71,10 @@ mat4 Model_NodeAnim::CalcR() {
 	float rFactor = numRkeys * durationInv;
 	glm::uint leftTick = tick * rFactor;
 	glm::uint rightTick = (tick + 1) * rFactor;
-	float interpolateFactor = tick * rFactor - (float)leftTick;
+	float interpolateFactor = tick * rFactor - leftTick;
 	aiQuaternion rQuat;
 	if (rightTick > numRkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numRkeys > 1) {
 		aiQuaternion::Interpolate(rQuat, rKeys[leftTick].value, rKeys[rightTick].value, interpolateFactor);
 	}
@@ -89,9 +89,9 @@ mat4 Model_NodeAnim::CalcS() {
 	float sFactor = numSkeys * durationInv;
 	uint leftTick = tick * sFactor;
 	uint rightTick = (tick + 1) * sFactor;
-	float interpolateFactor = tick * sFactor - (float)leftTick;
+	float interpolateFactor = tick * sFactor - leftTick;
 	if (rightTick > numSkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numSkeys > 1) {
 		aiVector3D vector = sKeys[leftTick].value * (1 - interpolateFactor) + sKeys[rightTick].value * interpolateFactor;
 		return scale(mat4(1.0f), vec3(vector.x, vector.y, vector.z));
@@ -103,9 +103,9 @@ mat4 Model_NodeAnim::CalcT() {
 	float tFactor = numTkeys * durationInv;
 	glm::uint leftTick = tick * tFactor;
 	glm::uint rightTick = (tick + 1) * tFactor;
-	float interpolateFactor = tick * tFactor - (float)leftTick;
+	float interpolateFactor = tick * tFactor - leftTick;
 	if (rightTick > numTkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numTkeys > 1) {
 		aiVector3D vector = tKeys[leftTick].value * (1 - interpolateFactor) + tKeys[rightTick].value * interpolateFactor;
 		return translate(mat4(1.0f), vec3(vector.x, vector.y, vector.z));
@@ -132,14 +132,14 @@ mat4 Model_NodeAnim::CalcT_c() {
 void Model_NodeAnim::RecordKeys(const int &objectNum, const float &tick, const float &duration) {
 	this->tick = tick;
 	this->duration = duration;
-	this->durationInv = 1.0f / duration;
+	this->durationInv = 1.0f / (duration + 1);
 
 	float rFactor = numRkeys * durationInv;
 	int leftTick = tick * rFactor;
 	int rightTick = (tick + 1) * rFactor;
-	float interpolateFactor = tick * rFactor - (float)leftTick;
+	float interpolateFactor = tick * rFactor - leftTick;
 	if (rightTick > numRkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numRkeys > 1) {
 		aiQuaternion::Interpolate(recentRKey[objectNum], rKeys[leftTick].value, rKeys[rightTick].value, interpolateFactor);
 	}
@@ -150,9 +150,9 @@ void Model_NodeAnim::RecordKeys(const int &objectNum, const float &tick, const f
 	float sFactor = numSkeys * durationInv;
 	leftTick = tick * sFactor;
 	rightTick = (tick + 1) * sFactor;
-	interpolateFactor = tick * sFactor - (float)leftTick;
+	interpolateFactor = tick * sFactor - leftTick;
 	if (rightTick > numSkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numSkeys > 1) {
 		recentSKey[objectNum] = sKeys[leftTick].value * (1 - interpolateFactor) + sKeys[rightTick].value * interpolateFactor;
 	}
@@ -161,9 +161,9 @@ void Model_NodeAnim::RecordKeys(const int &objectNum, const float &tick, const f
 	float tFactor = numTkeys * durationInv;
 	leftTick = tick * tFactor;
 	rightTick = (tick + 1) * tFactor;
-	interpolateFactor = tick * tFactor - (float)leftTick;
+	interpolateFactor = tick * tFactor - leftTick;
 	if (rightTick > numTkeys - 1)
-		rightTick = leftTick;
+		rightTick = 0;
 	if (numTkeys > 1) {
 		recentTKey[objectNum] = tKeys[leftTick].value * (1 - interpolateFactor) + tKeys[rightTick].value * interpolateFactor;
 	}

@@ -22,12 +22,15 @@ private:
 	void MousePress_Greetings(const int &button, const int &state, const int &x, const int &y);
 	void MousePress_ObjectEditor(const int &button, const int &state, const int &x, const int &y);
 	void MousePress_TerrainEditor(const int &button, const int &state, const int &x, const int &y);
+	void MousePress_Gameplay(const int &button, const int &state, const int &x, const int &y);
 	void MouseMoveActive_Greetings(const int &x, const int &y);
 	void MouseMoveActive_ObjectEditor(const int &x, const int &y);
 	void MouseMoveActive_TerrainEditor(const int &x, const int &y);
+	void MouseMoveActive_Gameplay(const int &x, const int &y);
 	void MouseMovePassive_Greetings(const int &x, const int &y);
 	void MouseMovePassive_ObjectEditor(const int &x, const int &y);
 	void MouseMovePassive_TerrainEditor(const int &x, const int &y);
+	void MouseMovePassive_Gameplay(const int &x, const int &y);
 
 	static Mouse *me;
 	GameObject *gameObject;

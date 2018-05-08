@@ -25,8 +25,8 @@ public:
 	void SetDimension(const int &width, const glm::vec2 &offset);
 	void SetHeightmap(const std::string &fileName);
 	GLuint GetVao();
-	glm::vec3 GetRaycastCoord_MP(const glm::vec3 &origin, const glm::vec3 &ray, const float &range, const int &iteration);
-	glm::vec3 GetRaycastCoord_S(const glm::vec3 &origin, const glm::vec3 &ray, const float &delta, const float &range);
+	glm::vec3 GetRaycastCoord_MP(const glm::vec3 &origin, const glm::vec3 &dir, const float &range, const int &iteration);
+	glm::vec3 GetRaycastCoord_S(const glm::vec3 &origin, const glm::vec3 &dir, const float &delta, const float &range);
 	float GetHeight(const glm::vec3 &objectPosition);
 	void RefreshVertex();
 

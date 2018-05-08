@@ -48,7 +48,12 @@ void WindowMenu::CreateEditorMenu() {
 int WindowMenu::GenObjectLoaderMenu() {
 	int menu = glutCreateMenu(RunObjectLoaderMenu);
 
-	int subMenu_animated = glutCreateMenu(RunAnimatedObjectMenu);
+	int subMenu_animated_player = glutCreateMenu(RunAnimatedObjectMenu_Player);
+	for (int i = 0; i < database->numAnimated; i++) {
+		glutAddMenuEntry(database->animatedIndex[i].name.data(), database->animatedIndex[i].index);
+	}
+
+	int subMenu_animated_enemy = glutCreateMenu(RunAnimatedObjectMenu_Enemy);
 	for (int i = 0; i < database->numAnimated; i++) {
 		glutAddMenuEntry(database->animatedIndex[i].name.data(), database->animatedIndex[i].index);
 	}
@@ -59,7 +64,8 @@ int WindowMenu::GenObjectLoaderMenu() {
 	}
 
 	glutSetMenu(menu);
-	glutAddSubMenu("Animated objects", subMenu_animated);
+	glutAddSubMenu("Animated objects(player)", subMenu_animated_player);
+	glutAddSubMenu("Animated objects(enemy)", subMenu_animated_enemy);
 	glutAddSubMenu("Static objects", subMenu_static);
 	
 	return menu;
@@ -69,7 +75,7 @@ void WindowMenu::RunObjectLoaderMenu(int menuHandle) {
 
 }
 
-void WindowMenu::RunAnimatedObjectMenu(int menuHandle) {
+void WindowMenu::RunAnimatedObjectMenu_Player(int menuHandle) {
 	ObjectInfo tempObjectInfo;
 	tempObjectInfo.modelId = menuHandle;
 	tempObjectInfo.pos = me->flags_io->raycastCoord;
@@ -78,6 +84,19 @@ void WindowMenu::RunAnimatedObjectMenu(int menuHandle) {
 	tempObjectInfo.RMatrix = glm::mat4(1.0f); // Currently not used
 	tempObjectInfo.preRot = glm::vec3(0, 0, 0);
 	tempObjectInfo.tag = 0;
+	tempObjectInfo.yOffset = 0.28f;
+	me->controller_character->AddCharacter(tempObjectInfo, me->objFinder);
+}
+
+void WindowMenu::RunAnimatedObjectMenu_Enemy(int menuHandle) {
+	ObjectInfo tempObjectInfo;
+	tempObjectInfo.modelId = menuHandle;
+	tempObjectInfo.pos = me->flags_io->raycastCoord;
+	tempObjectInfo.scale = 0.1f;
+	tempObjectInfo.dir = glm::vec3(0, 0, -1);
+	tempObjectInfo.RMatrix = glm::mat4(1.0f); // Currently not used
+	tempObjectInfo.preRot = glm::vec3(90, 0, 0);
+	tempObjectInfo.tag = 3;
 	tempObjectInfo.yOffset = 0.28f;
 	me->controller_character->AddCharacter(tempObjectInfo, me->objFinder);
 }

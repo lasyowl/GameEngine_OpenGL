@@ -14,28 +14,17 @@ public:
 	Render_Sphere();
 	~Render_Sphere();
 
-	void Draw(glm::mat4 ViewProjectionMatrix);
+	void SetRadius(const float &radius);
+	void Draw(const glm::mat4 &ViewProjectionMatrix, const GLuint &vao, const int &indexCount);
 	void Initiate();
-	void EnableSkyMode();
-	void DisableSkyMode();
+
+	bool highlight;
 
 private:
-	void InitSphereRenderer();
-	void GenSphereMeshes();
 	void GenShaderProgram();
 	void GetShaderVar();
 	void SetShaderVar();
-	void GenObjects();
-	void BindObjectData();
 
-	Mesh_Sphere sphereMesh;
-	GLuint vao;
-	GLuint vbo_vertex;
-	GLuint vbo_normal;
-	GLuint vbo_uv;
-	GLuint index;
-	GLuint texture;
-
-	bool skyMode;
+	float radius;
 };
 #endif

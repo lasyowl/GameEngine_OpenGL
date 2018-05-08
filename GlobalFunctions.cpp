@@ -3,6 +3,8 @@
 using namespace glm;
 using namespace std;
 
+int GlobalFunctions::timeElapsed = 0;
+
 void GlobalFunctions::Start() {
 	start = clock();
 }

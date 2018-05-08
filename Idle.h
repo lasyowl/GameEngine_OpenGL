@@ -17,6 +17,7 @@ private:
 	void Update_Greetings();
 	void Update_ObjectEditor();
 	void Update_TerrainEditor();
+	void Update_Gameplay();
 	
 	void PlayerMove();
 	void CameraMove();

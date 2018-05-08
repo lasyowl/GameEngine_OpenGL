@@ -16,11 +16,16 @@ layout( binding = 0) uniform sampler2D Tex;
 
 layout( location = 0 ) out vec4 FragColor;
 
-vec3 ads( )
-{
+vec3 dd;
+
+vec3 ads() {
     vec3 s = normalize( vec3(LightPosition) - Position );
     vec3 v = normalize(vec3(-Position));
     vec3 r = reflect( -s, Normal );
+
+	for(int i = 0; i < 4; i++) {
+		s = s * s;
+	}
 
     return
         LightIntensity * ( Ka +

@@ -47,7 +47,7 @@ void Render_Point::Draw(const mat4 &ViewProjectionMatrix) {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vec3), &point[0], GL_DYNAMIC_DRAW);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
 	glEnableVertexAttribArray(0);
-	//SetShaderVar();
+
 	glPointSize(5.0f);
 	glDrawArrays(GL_POINTS, 0, 10);
 }

@@ -20,6 +20,7 @@ uniform vec4 color_ambient = vec4(0.1f, 0.1f, 0.1f, 1.0f);
 uniform vec4 color_diffuse = vec4(0.2f, 0.2f, 0.2f, 1.0f);
 uniform vec4 color_specular = vec4(0.7f, 0.7f, 0.7f, 1.0f);
 uniform float exponent_specular = 5.0f;
+uniform float const_specular = 5.0f;
 
 uniform vec3 color_fog = vec3(0.5f, 0.5f, 0.8f);
 
@@ -28,6 +29,7 @@ uniform sampler2D texture_normalmap;
 uniform bool useTexture;
 uniform bool useNormalmap;
 uniform bool reflectMode;
+uniform bool fakeLighting;
 
 vec3 CalcNewNormal(vec3 fs_normal) {
 	vec3 tex_normal = texture(texture_normalmap, vs_uv).xyz;
@@ -50,31 +52,48 @@ void main() {
 	vec3 lightReflect_vector[MAX_NUM_LIGHT];
 	float diffuse_factor = 0.0f;
 	float specular_factor = 0.0f;
-	vec3 fs_normal = normalize(vs_normal);
-	if(useNormalmap == true) {
-		fs_normal = CalcNewNormal(fs_normal);
+	vec3 fs_normal;
+	vec3 temp_vec3;
+
+	if(fakeLighting == false) {
+		fs_normal = normalize(vs_normal);
+		if(useNormalmap == true) {
+			fs_normal = CalcNewNormal(fs_normal);
+		}
+	}
+	else {
+		fs_normal = vec3(0, 1, 0);
 	}
 
-	for(int i = 0; i < numLight; i++) {
-		lightToPos_vector[i] = normalize(vs_position - light_position[i]);
-		lightToPos_distance[i] = distance(vs_position, light_position[i]);
+	// Sunlight
+	lightReflect_vector[0] = reflect(light_direction[0], fs_normal);
+	diffuse_factor += max(dot(-light_direction[0], fs_normal), 0.0f) * light_intensity[0];
+	specular_factor += max(pow(dot(lightReflect_vector[0], normalize(posToEye_vector)), exponent_specular), 0.0f) * light_intensity[0];
+
+	// Pointlight
+	for(int i = 1; i < numLight; i++) {
+		temp_vec3 = vs_position - light_position[i];
+		lightToPos_vector[i] = normalize(temp_vec3);
+		lightToPos_distance[i] = (temp_vec3 / lightToPos_vector[i]).x;
 		lightReflect_vector[i] = reflect(lightToPos_vector[i], fs_normal);
 		diffuse_factor += max(dot(-lightToPos_vector[i], fs_normal), 0.0f) * light_intensity[i] / pow(lightToPos_distance[i], 2);
-		specular_factor += pow(max(0.0f, dot(lightReflect_vector[i], normalize(posToEye_vector))), exponent_specular) * light_intensity[i] / pow(lightToPos_distance[i], 2);
+		specular_factor += max(pow(dot(lightReflect_vector[i], normalize(posToEye_vector)), exponent_specular), 0.0f) * light_intensity[i] / pow(lightToPos_distance[i], 2);
 	}
 
 	if(useTexture == true) {
 		vec4 texture_color = texture(texture_diffuse, vs_uv);
-		finalColor = coef_ambient * texture_color + texture_color * (diffuse_factor * color_diffuse) + specular_factor * color_specular;
+		finalColor = coef_ambient * texture_color + texture_color * (diffuse_factor * color_diffuse) + specular_factor * color_specular * const_specular;
 		finalColor.w = texture_color.w;
 	}
 	else {
-		finalColor = color_ambient + diffuse_factor * color_diffuse + specular_factor * color_specular;
+		finalColor = color_ambient + diffuse_factor * color_diffuse + specular_factor * color_specular * const_specular;
 		finalColor.w = color_diffuse.w;
 	}
 
 	if(finalColor.a < 0.1f)
 		discard;
-
 	//finalColor = mix(vec4(color_fog, 1), finalColor, visibility);
+	//finalColor.r = finalColor.g = finalColor.b = specular_factor;
+	//finalColor = vec4(lightReflect_vector[0], 1);
+
 }

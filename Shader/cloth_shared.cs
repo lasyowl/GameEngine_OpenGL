@@ -5,7 +5,7 @@ layout(local_size_x = 10, local_size_y = 10) in;
 uniform vec3 Gravity = vec3(0,-10,0);
 uniform float ParticleMass = 0.1;
 uniform float ParticleInvMass = 1.0 / 0.1;
-uniform float SpringK = 2000.0;
+uniform float SpringK = 2500.0;
 uniform float RestLengthHoriz;
 uniform float RestLengthVert;
 uniform float RestLengthDiag;

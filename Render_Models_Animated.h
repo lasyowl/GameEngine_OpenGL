@@ -28,7 +28,7 @@ public:
 	void UpdatePlayerPos(const glm::vec3 &playerPos);
 	void SetFramebuffer(Framebuffer *framebuffer);
 	std::list<ObjectInfo>::iterator IsFull();
-	void PlayAnim(const std::list<ObjectInfo>::iterator &iter, const int &playCount);
+	int PlayAnim(const std::list<ObjectInfo>::iterator &iter, const int &playCount, const bool &loopAnim = false);
 
 	std::vector<Model_Scene_Animated> scene;
 

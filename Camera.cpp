@@ -26,7 +26,8 @@ void Camera::SetViewport(const vec2 &viewport) {
 
 void Camera::UpdatePos() {
 	if (pov == SKY_VIEW) {
-		position = vec3(128.0f, 100.0f, -128.0f);
+		position = vec3(400.0f, 100.0f, -200.0f);
+		direction = normalize(vec3(rotate(mat4(1.0f), radians(-GlobalFunctions::timeElapsed * 0.005f), vec3(0, 1, 0)) * vec4(direction, 1)));
 	}
 	else if (pov == THIRD_PERSON) {
 		position = character->GetPos();

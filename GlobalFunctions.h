@@ -27,6 +27,7 @@ public:
 	glm::mat4 AiToGlm(const aiMatrix4x4 &matrix);
 	bool FpsCounter();
 	float CalcLength(glm::vec3 vector);
+	static int timeElapsed;
 
 private:
 	int start, end;

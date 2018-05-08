@@ -43,8 +43,8 @@ void Mesh_Sphere::GenMeshVertex() {
 }
 
 void Mesh_Sphere::GenIndex() {
-	index.resize(2 * col * col - 4);
-	for (int i = 0; i < col - 1; i++) {
+	index.resize(2 * row * col - 2 * col + 2 * (row - 2));
+	for (int i = 0; i < row - 1; i++) {
 		for (int j = 0; j < col * 2; j++) {
 			index[(2 * col + 2) * i + j] = j / 2 + col * (i + j % 2);
 		}

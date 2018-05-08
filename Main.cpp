@@ -8,8 +8,8 @@
 
 #include "GameManager.h"
 
-static float VIEWPORT_X = 1920.0f;
-static float VIEWPORT_Y = 1080.0f;
+static float VIEWPORT_X = 800.0f;
+static float VIEWPORT_Y = 800.0f;
 
 GameManager *gm;
 
@@ -24,6 +24,7 @@ void RegisterCallback() {
 	glutMouseWheelFunc(gm->mouse.MouseWheel);
 	glutReshapeFunc(gm->display.Resize);
 	glutSpecialUpFunc(gm->keyboard.SpecialKeyUp);
+	glutSpecialFunc(gm->keyboard.SpecialKeyPress);
 	glutMenuStatusFunc(gm->MenuStatusFunc);
 }
 
@@ -40,7 +41,7 @@ int main(int argc, char **argv) {
 	glewExperimental = GL_TRUE;
 	
 	glewInit();
-
+	
 	glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
 
 	gm = new GameManager;

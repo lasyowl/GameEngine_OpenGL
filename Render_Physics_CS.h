@@ -7,17 +7,17 @@ public:
 	Render_Physics_CS();
 	~Render_Physics_CS();
 
-	void initScene();
-	void update(float t);
-	void render();
-	void resize(int, int);
+	void InitScene();
+	void Update(float t);
+	void Render();
+	void Resize(int, int);
 	void SwitchFlag();
 
 private:
 	void GenShaderProgram();
 	void GetShaderVar();
-	void initBuffers();
-	void setMatrices();
+	void InitBuffers();
+	void SetMatrices();
 
 	int width, height;
 	GLuint clothVao;
@@ -33,4 +33,5 @@ private:
 
 	glm::mat4 view, model, projection;
 	bool flag;
+	GLuint tex;
 };

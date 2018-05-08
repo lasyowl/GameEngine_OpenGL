@@ -10,6 +10,8 @@ public:
 	~Light();
 
 	void AddLight(glm::vec3 position, glm::vec3 direction, glm::vec3 color, float intensity);
+	void SetDirection(const int &index, const glm::vec3 &direction);
+	void SetIntensity(const int &index, const float &intensity);
 
 	std::vector<float> intensity;
 	std::vector<glm::vec3> position;

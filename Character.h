@@ -10,13 +10,16 @@
 #include "Mesh_Terrain.h"
 #include "ModelTransform_Loader.h"
 #include "ObjectFinder.h"
+#include "Collider_Sphere.h"
 
 #define CHAR_ACTIV_FAIL false
 #define CHAR_ACTIV_SUCCESS true
 
+class PathFinder_Node;
+
 enum Tag { PLAYER, ENEMY, COPLAYER };
 enum RotSequence { SEQ_ONE, SEQ_TWO };
-enum State { STATE_IDLE, STATE_WALK, STATE_RUN, STATE_ATTACK, STATE_JUMP, STATE_MOVE };
+enum State { STATE_IDLE, STATE_WALK, STATE_RUN, STATE_ATTACK, STATE_JUMP, STATE_MOVE, STATE_CASTING, STATE_DEATH };
 
 class Character {
 public:
@@ -26,7 +29,7 @@ public:
 	bool operator == (const Character &rightHand);
 
 	void Initiate(const ObjectInfo &objectInfo, Render_Models_Animated *models_animated, Mesh_Terrain *terrain);
-	void Move(const glm::vec3 &dir, const float &speed);
+	void Move(const glm::vec3 &dir, const bool &clearPath = true);
 	void Rotate(const int &rotSequence, const float &angle);
 	void SetState(const int &state);
 	void SetDir(const glm::vec3 &dir);
@@ -34,6 +37,7 @@ public:
 	void SetPos(const glm::vec3 &pos);
 	void GenPreRotMatrix();
 	glm::vec3 GetPos();
+	glm::vec3 GetPos_HUD();
 	glm::vec3 GetDir();
 	glm::vec3 GetRightDir();
 	glm::mat4 GetRMatrix();
@@ -45,15 +49,28 @@ public:
 	void Update();
 	void MaintainAnim(const bool &maintain);
 	bool IsJumping();
+	void ReservePath(std::vector<PathFinder_Node*> &reservedPath);
+	void ClearPath();
+	void Damage(const float &damage);
 
 	bool calcGravity;
 	int animState;
+	int animDuration;
+	float speed;
+	bool isRunning;
 	float scale;
 	glm::vec3 position;
 	glm::vec3 preRotation;
 	std::list<ObjectInfo>::iterator iter;
+	std::vector<PathFinder_Node*> reservedPath;
+	int pathSeq;
 
 	ObjectFinder *objectFinder;
+	Collider_Sphere collider;
+	float recogDist;
+	float hitPoint_current;
+	float hitPoint_max;
+	bool isDying;
 
 protected:
 	void SetObjectInfo(const ObjectInfo &objectInfo);
@@ -64,7 +81,8 @@ protected:
 	void SetPreRot(const glm::vec3 &preRot);
 	void SetTag(const int &tag);
 	void SetYOffset(const float &yOffset);
-	void PlayAnim(const std::string &animName, const int &playCount);
+	int PlayAnim(const std::string &animName, const int &playCount, const bool &loopAnim = false);
+	void ReservedMove();
 
 	Mesh_Terrain *mesh_terrain;
 
@@ -85,6 +103,7 @@ protected:
 	bool maintainAnim;
 	bool isJumping;
 	ObjectInfo objectInfo;
+	
 
 private:
 	void SetRenderer(Render_Models_Animated *renderer);

@@ -77,8 +77,8 @@ void Model_Scene_Static::LoadTexture(const char *filePath) {
 
 void Model_Scene_Static::LoadScene(const FileInfo &fileInfo) {
 	Assimp::Importer importer;
-	importer.ReadFile(fileInfo.fullPath, aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes);
-	const aiScene *scene = importer.GetOrphanedScene();
+	
+	const aiScene *scene = importer.ReadFile(fileInfo.fullPath, aiProcess_Triangulate | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes);
 	
 	// Stage 1 : Mesh generation
 	mesh.resize(scene->mNumMeshes);

@@ -1,7 +1,7 @@
 #include "Object_Info.h"
 
 
-ObjectInfo::ObjectInfo() : isSelected(false) {
+ObjectInfo::ObjectInfo() : isSelected(false), yOffset(0.0f), HandMatrix(glm::mat4(1)) {
 
 }
 

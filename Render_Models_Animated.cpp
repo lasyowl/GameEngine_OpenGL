@@ -11,11 +11,13 @@ using namespace std;
 using namespace glm;
 
 Render_Models_Animated::Render_Models_Animated() : useBone(false) {
-
+	varRender = new Var_Render;
+	varRender_selectionBox = new Var_Render;
 }
 
 Render_Models_Animated::~Render_Models_Animated() {
-
+	delete varRender;
+	delete varRender_selectionBox;
 }
 
 void Render_Models_Animated::InitModelRenderer() {
@@ -31,12 +33,14 @@ void Render_Models_Animated::DrawModels(mat4 ViewProjectionMatrix, int timeElaps
 	while (iter != objectInfo.end()) {
 		currentObjectNum = iter->charIndex;
 		currentScene = &scene[iter->modelId];
+		iter->HandMatrix = scene[iter->modelId].HandMatrix[currentObjectNum];
 		if (distance(playerPos, iter->pos) < radius) {
-			if (timeElapsed != 0)
+			if (timeElapsed != 0) 
 				currentScene->UpdateBoneMatrix(timeElapsed, iter->TransformMatrix, currentObjectNum);
+
 			DrawNodeRecursive(&currentScene->rootNode);
 		}
-		iter++;
+		++iter;
 	}
 }
 
@@ -70,7 +74,7 @@ void Render_Models_Animated::DrawSelectionBox() {
 		if (distance(playerPos, iter->pos) < radius) {
 			currentObjectNum = iter->charIndex;
 			currentScene = &scene[iter->modelId];
-			varRender->ModelMatrix = iter->SelectionBoxTransformMatrix;
+			varRender->ModelMatrix = iter->SelectionBoxTransformMatrix * currentScene->rootNode.transformation;
 			currentScene->BindVao_SelectionBox(0);
 			if (iter->isSelected)
 				varRender_selectionBox->color_line = vec3(1, 0, 0);
@@ -79,7 +83,7 @@ void Render_Models_Animated::DrawSelectionBox() {
 			glDrawArrays(GL_LINE_STRIP, 0, 16);
 			//DrawNodeRecursive_SelectionBox(&currentScene->rootNode);
 		}
-		iter++;
+		++iter;
 	}
 }
 
@@ -128,7 +132,6 @@ void Render_Models_Animated::GenShaderProgram() {
 
 void Render_Models_Animated::GetShaderVar() {
 	glUseProgram(shaderProgram[0]);
-	varRender = new Var_Render;
 	varRender->loc_ModelViewProjectionMatrix = glGetUniformLocation(shaderProgram[0], "ModelViewProjectionMatrix");
 	varRender->loc_ViewProjectionMatrix = glGetUniformLocation(shaderProgram[0], "ViewProjectionMatrix");
 	varRender->loc_ModelMatrix = glGetUniformLocation(shaderProgram[0], "ModelMatrix");
@@ -145,14 +148,15 @@ void Render_Models_Animated::GetShaderVar() {
 	varRender->loc_color_diffuse = glGetUniformLocation(shaderProgram[0], "color_diffuse");
 	varRender->loc_color_specular = glGetUniformLocation(shaderProgram[0], "color_specular");
 	varRender->loc_texture_diffuse = glGetUniformLocation(shaderProgram[0], "texture_diffuse");
+	varRender->loc_texture_normalmap = glGetUniformLocation(shaderProgram[0], "texture_normalmap");
 	varRender->loc_tex_shadowmap = glGetUniformLocation(shaderProgram[0], "tex_shadowmap");
 	varRender->loc_eye_position = glGetUniformLocation(shaderProgram[0], "eye_position");
 	varRender->loc_useTexture = glGetUniformLocation(shaderProgram[0], "useTexture");
+	varRender->loc_useNormalmap = glGetUniformLocation(shaderProgram[0], "useNormalmap");
 
 	glUniform1i(varRender->loc_tex_shadowmap, framebuffer->depthTex_shadowmap);
 
 	glUseProgram(shaderProgram[1]);
-	varRender_selectionBox = new Var_Render;
 	varRender_selectionBox->loc_ViewProjectionMatrix = glGetUniformLocation(shaderProgram[1], "ViewProjectionMatrix");
 	varRender_selectionBox->loc_ModelMatrix = glGetUniformLocation(shaderProgram[1], "ModelMatrix");
 	varRender_selectionBox->loc_color_line = glGetUniformLocation(shaderProgram[1], "color_line");
@@ -190,6 +194,13 @@ void Render_Models_Animated::SetShaderVar() {
 	glUniform4fv(varRender->loc_color_specular, 1, &currentMaterial->color_specular[0]);
 	glUniform1i(varRender->loc_texture_diffuse, currentMaterial->tbo_diffuse);
 	glUniform1i(varRender->loc_useTexture, currentMaterial->useTexture);
+	if (currentMaterial->tbo_normal == -1) {
+		glUniform1i(varRender->loc_useNormalmap, false);
+	}
+	else {
+		glUniform1i(varRender->loc_texture_normalmap, currentMaterial->tbo_normal);
+		glUniform1i(varRender->loc_useNormalmap, true);
+	}
 }
 
 void Render_Models_Animated::SetShaderVar_SelectionBox() {
@@ -224,7 +235,7 @@ list<ObjectInfo>::iterator Render_Models_Animated::AddObject(const ObjectInfo &o
 
 	list<ObjectInfo>::iterator iter = this->objectInfo.end();
 	this->objectInfo.insert(iter, objectInfo);
-	iter--;
+	--iter;
 	iter->selectionBox = &scene[objectInfo.modelId].selectionBox;
 	iter->charIndex = *objectIndex.begin();
 	printf("Inserted object %d\n", iter->charIndex);
@@ -243,8 +254,8 @@ void Render_Models_Animated::DeleteObject(list<ObjectInfo>::iterator objectIter)
 	objectInfo.erase(objectIter);
 }
 
-void Render_Models_Animated::PlayAnim(const list<ObjectInfo>::iterator &iter, const int &playCount) {
+int Render_Models_Animated::PlayAnim(const list<ObjectInfo>::iterator &iter, const int &playCount, const bool &loopAnim) {
 	scene[iter->modelId].Record(iter->charIndex);
 	scene[iter->modelId].Reset(iter->charIndex);
-	scene[iter->modelId].PlayAnim(iter->currentAnim, iter->charIndex, playCount);
+	return scene[iter->modelId].PlayAnim(iter->currentAnim, iter->charIndex, playCount, loopAnim);
 }

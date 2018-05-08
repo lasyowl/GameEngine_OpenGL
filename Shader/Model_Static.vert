@@ -30,10 +30,11 @@ void main() {
 	gl_ClipDistance[2] = dot(newPosition, plane0);
 
 	gl_Position = ViewProjectionMatrix * newPosition;
-	vs_position = vec3(ModelMatrix * vec4(appVertex, 1.0f));
+	newPosition /= newPosition.w;
+	vs_position = newPosition.xyz;
 	vs_normal = mat3(ModelMatrix) * appNormal;
 	vs_uv = appUV;
-	posToEye_vector = eye_position - vec3(appVertex);
+	posToEye_vector = eye_position - appVertex;
 
 	float posToEye_distance = distance(eye_position, vs_position);
 	visibility = exp(-pow((posToEye_distance * density) , gradient));

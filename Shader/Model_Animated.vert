@@ -38,6 +38,7 @@ void main() {
 	if(useBone == true) {
 		mat4 WeightMatrix = weight.x * BoneMatrix[weightIndex.x] + weight.y * BoneMatrix[weightIndex.y];
 		newPosition = WeightMatrix * vec4(appVertex, 1.0f);
+		newPosition /= newPosition.w;
 
 		vs_normal = mat3(WeightMatrix) * appNormal;
 	}
